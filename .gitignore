@@ -1,0 +1,13 @@
+# Binaries
+bin/
+*.exe
+
+# Environment variables
+.env
+
+# Go dependencies
+vendor/
+
+# IDE files
+.vscode/
+.idea/
