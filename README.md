@@ -17,33 +17,29 @@ Backend ini dibangun menggunakan bahasa **Go** dengan pendekatan **Clean Archite
 ## 📂 Struktur Proyek
 Sesuai dengan standar *Go Project Layout*, struktur folder dipisahkan untuk menjaga skalabilitas:
 ```
-├── cmd/
-│   └── api/
-│       └── main.go          # Entry point: Inisialisasi DB, DI, & Server
-├── internal/
-│   ├── delivery/            # Layer 4: Pintu Masuk (External World)
-│   │   ├── http/            # REST API Handlers & Routes
-│   │   ├── cli/             # Command Line Interface tools
-│   │   └── cron/            # Background workers / Scheduled tasks
-│   ├── domain/              # Layer 1: Core (Aturan Bisnis & Kontrak)
-│   │   ├── user.go          # Entity & Interface User
-│   │   └── dictionary.go    # Entity & Interface Dictionary (Mauna)
-│   ├── repository/          # Layer 3: Data Access (Raw SQL/sqlx)
-│   │   ├── user_repo.go     # Implementasi query SQL untuk User
-│   │   └── dict_repo.go     # Implementasi query SQL untuk Dictionary
-│   └── service/             # Layer 2: Business Logic (Usecase)
-│       ├── user_service.go  # Logika seperti registrasi/login
-│       └── dict_service.go  # Logika pengolahan kata isyarat
-├── migrations/              # Skema Database (Versioning)
-│   ├── 000001_init.up.sql   # SQL untuk membuat tabel
-│   └── 000001_init.down.sql # SQL untuk rollback tabel
-├── pkg/                     # Shared Utilities (Re-usable)
-│   ├── database/            # Konfigurasi koneksi PostgreSQL/sqlx
-│   └── security/            # Helper Hashing & JWT
-├── Makefile                 # Automasi: build, run, & migrate
-├── .env                     # Environment variables (Private)
-├── .gitignore               # Daftar file yang tidak di-upload ke Git
-└── go.mod                   # Daftar dependensi library Go
+📦Mauna-Backend-Refactor
+ ┣ 📂cmd
+ ┃ ┗ 📂app
+ ┃ ┃ ┗ 📜main.go
+ ┣ 📂config
+ ┣ 📂internal
+ ┃ ┣ 📂delivery
+ ┃ ┃ ┣ 📂http
+ ┃ ┃ ┣ 📂interface
+ ┃ ┃ ┗ 📂route
+ ┃ ┣ 📂domain
+ ┃ ┣ 📂repository
+ ┃ ┗ 📂service
+ ┣ 📂migration
+ ┣ 📂model
+ ┣ 📂pkg
+ ┃ ┣ 📂database
+ ┃ ┗ 📂security
+ ┣ 📜.gitignore
+ ┣ 📜Makefile
+ ┣ 📜README.md
+ ┣ 📜go.mod
+ ┗ 📜go.sum
 ```
 ---
 
