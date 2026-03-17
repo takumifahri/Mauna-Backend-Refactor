@@ -1,19 +1,21 @@
-# Variables
-DB_URL=postgres://user:password@localhost:5432/mauna_db?sslmode=disable
-MIGRATIONS_DIR=migrations
+# Variables (can be overridden: make DB_URL=... migrate-up)
+DB_URL ?= postgres://user:password@localhost:5432/mauna_db?sslmode=disable
+MIGRATIONS_DIR ?= migration
+APP_MAIN ?= cmd/app/main.go
+SEED_MAIN ?= cmd/seed/seed.go
 
 ## help: show this help message
 help:
 	@echo 'Usage:'
-	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
 
 ## run: run the api application
 run:
-	go run cmd/api/main.go
+	go run $(APP_MAIN)
 
 ## build: build the binary executable
 build:
-	go build -o bin/mauna_api cmd/api/main.go
+	go build -o bin/mauna_api $(APP_MAIN)
 
 ## test: run all unit tests
 test:
@@ -29,11 +31,28 @@ migrate-up:
 
 ## migrate-down: rollback the last migration
 migrate-down:
-	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose down 1
+
+## migrate-reset: drop all objects and re-run all migrations (dev only)
+migrate-reset:
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose drop -f
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" -verbose up
+
+## migrate-version: show current migration version
+migrate-version:
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" version
+
+## migrate-force version=$1: force migration version (repair dirty state)
+migrate-force:
+	migrate -path $(MIGRATIONS_DIR) -database "$(DB_URL)" force $(version)
+
+## seed: run database seeders
+seed:
+	go run $(SEED_MAIN)
 
 ## tidy: format code and tidy go modules
 tidy:
 	go fmt ./...
 	go mod tidy
 
-.PHONY: help run build test migrate-create migrate-up migrate-down tidy
+.PHONY: help run build test migrate-create migrate-up migrate-down migrate-reset migrate-version migrate-force seed tidy
