@@ -1,5 +1,8 @@
-# Variables (can be overridden: make DB_URL=... migrate-up)
-DB_URL ?= postgres://user:password@localhost:5432/mauna_db?sslmode=disable
+# Load .env file jika ada
+-include .env
+export $(shell sed 's/=.*//' .env 2>/dev/null)
+
+# Variables (bisa override via make DB_URL=... migrate-up)
 MIGRATIONS_DIR ?= migration
 APP_MAIN ?= cmd/app/main.go
 SEED_MAIN ?= cmd/seed/seed.go

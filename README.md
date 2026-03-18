@@ -17,29 +17,43 @@ Backend ini dibangun menggunakan bahasa **Go** dengan pendekatan **Clean Archite
 ## 📂 Struktur Proyek
 Sesuai dengan standar *Go Project Layout*, struktur folder dipisahkan untuk menjaga skalabilitas:
 ```
-📦Mauna-Backend-Refactor
- ┣ 📂cmd
- ┃ ┗ 📂app
- ┃ ┃ ┗ 📜main.go
- ┣ 📂config
- ┣ 📂internal
- ┃ ┣ 📂delivery
- ┃ ┃ ┣ 📂http
- ┃ ┃ ┣ 📂interface
- ┃ ┃ ┗ 📂route
- ┃ ┣ 📂domain
- ┃ ┣ 📂repository
- ┃ ┗ 📂service
- ┣ 📂migration
- ┣ 📂model
- ┣ 📂pkg
- ┃ ┣ 📂database
- ┃ ┗ 📂security
- ┣ 📜.gitignore
- ┣ 📜Makefile
- ┣ 📜README.md
- ┣ 📜go.mod
- ┗ 📜go.sum
+Mauna-Backend-Refactor/
+├── cmd/
+│   ├── app/main.go          # Entry point + DI container
+│   └── seed/seed.go
+├── config/
+│   └── config.go            # Env loading
+├── internal/
+│   ├── domain/
+│   │   ├── entities/        # Model structs (User, Badge, etc)
+│   │   ├── repository.go    # Repository interfaces
+│   │   └── errors.go        # Custom errors
+│   ├── dto/                 # Request/Response payloads
+│   ├── repository/          # Implementation
+│   ├── service/             # Business logic
+│   ├── delivery/http/
+│   │   ├── handler/         # HTTP handlers
+│   │   ├── middleware/      # Auth, logging
+│   │   └── route.go         # Route setup
+│   └── utils/               # Helpers
+├── pkg/
+│   ├── database/
+│   │   └── connection.go    # DB setup
+│   ├── security/
+│   │   ├── jwt.go
+│   │   └── password.go
+│   └── logger/
+├── migration/
+├── tests/
+├── docker-compose.yml
+├── Dockerfile
+├── go.mod
+├── go.sum
+├── .env
+├── .env.example
+├── .gitignore
+├── Makefile
+└── README.md
 ```
 ---
 
