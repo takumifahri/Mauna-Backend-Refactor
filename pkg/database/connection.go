@@ -3,7 +3,7 @@ package database
 import (
     "fmt"
     "os"
-    "strconv"
+    // "strconv"
     "time"
 
     "github.com/jmoiron/sqlx"
@@ -97,10 +97,9 @@ func (db *DB) Health() error {
     }
     return nil
 }
-
-// Stats returns connection pool statistics
-func (db *DB) Stats() string {
-    stats := db.Stats()
+// GetStats returns connection pool statistics
+func (db *DB) GetStats() string {
+    stats := db.DB.Stats()  // Call parent sqlx.DB Stats()
     return fmt.Sprintf(
         "OpenConnections: %d, InUse: %d, Idle: %d, WaitCount: %d",
         stats.OpenConnections,
