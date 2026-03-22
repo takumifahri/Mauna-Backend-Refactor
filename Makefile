@@ -51,8 +51,16 @@ migrate-force:
 
 ## seed: run database seeders
 seed:
-	go run $(SEED_MAIN)
+	go run cmd/seed/main.go
 
+## seed-build: build seed binary
+seed-build:
+	go build -o bin/seed cmd/seed/main.go
+
+## seed-run: run built seed binary
+seed-run:
+	./bin/seed
+	
 ## tidy: format code and tidy go modules
 tidy:
 	go fmt ./...
