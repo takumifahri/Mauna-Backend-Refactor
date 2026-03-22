@@ -15,7 +15,7 @@ Backend ini dibangun menggunakan bahasa **Go** dengan pendekatan **Clean Archite
 ---
 
 ## IMPORTANT NOTES GOLANG!
-Capital letter (PascalCase)  = EXPORTED (Public)   ✅ Bisa diakses dari package lain
+Capital letter (PascalCase)  = EXPORTED (Public)   ✅ Bisa diakses dari package lain  
 lowercase camelCase          = UNEXPORTED (Private) ❌ Hanya bisa di package yang sama
 
 ---
