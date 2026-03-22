@@ -24,7 +24,7 @@ type User struct {
     UniqueID              string     `db:"unique_id"`
     Username              string     `db:"username"`
     Email                 string     `db:"email"`
-    Password              string     `db:"password"`
+    PasswordHash          string     `db:"password_hash"`
     Nama                  *string    `db:"nama"`
     Telpon                *string    `db:"telpon"`
     Role                  UserRole   `db:"role"`
