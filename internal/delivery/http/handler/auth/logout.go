@@ -1,12 +1,13 @@
 package auth
-import (
-    "context"
-    "encoding/json"
-    "net/http"
-    "time"
 
-    "REFACTORING_MAUNA/internal/domain"
-    "REFACTORING_MAUNA/internal/dto"
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"REFACTORING_MAUNA/internal/domain"
+	"REFACTORING_MAUNA/internal/dto"
 )
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
