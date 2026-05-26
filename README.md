@@ -136,16 +136,16 @@ Pastikan kamu sudah menginstal `migrate` di sistem kamu (via `pacman -S migrate`
    ```
 
 ## Observability Lokal
-Project ini sudah menyiapkan structured logging dan OpenTelemetry tracing.
-Untuk melihat trace di Jaeger:
+Project ini sudah menyiapkan structured logging, Prometheus metrics, Loki logs, Grafana, dan OpenTelemetry tracing ke Jaeger.
 
-1. Jalankan Jaeger:
+1. Jalankan stack observability:
    ```bash
    make observability-up
    ```
 
-2. Set environment tracing di `.env`:
+2. Set environment observability di `.env`:
    ```env
+   LOG_FILE=logs/mauna-api.log
    OTEL_TRACES_EXPORTER=otlp
    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
    ```
@@ -155,12 +155,37 @@ Untuk melihat trace di Jaeger:
    make run
    ```
 
-4. Buka Jaeger UI:
+4. Buka tools observability:
    ```text
-   http://localhost:16686
+   Grafana:    http://localhost:3000
+   Prometheus: http://localhost:9090
+   Jaeger:     http://localhost:16686
+   Loki:       http://localhost:3100
    ```
 
-Log request akan membawa `trace_id` dan `span_id`, jadi error di log bisa dicari kembali di Jaeger.
+Grafana login default untuk lokal adalah `admin` / `admin`. Datasource Prometheus, Loki, dan Jaeger sudah diprovision otomatis.
+
+Endpoint metrics aplikasi tersedia di:
+
+```text
+http://localhost:8081/metrics
+```
+
+Contoh query Prometheus:
+
+```promql
+sum(rate(mauna_http_requests_total[5m])) by (method, path, status)
+histogram_quantile(0.95, sum(rate(mauna_http_request_duration_seconds_bucket[5m])) by (le, path))
+```
+
+Contoh query Loki di Grafana Explore:
+
+```logql
+{app="mauna-backend"} | json
+{app="mauna-backend"} | json | trace_id != ""
+```
+
+Log request membawa `trace_id` dan `span_id`, jadi error di Loki bisa dicari kembali di Jaeger.
 
    ## 📜 Makefile Commands
 Gunakan perintah `make` untuk mempercepat alur kerja DevOps di terminal Arch Linux:
