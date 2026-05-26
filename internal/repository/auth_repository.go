@@ -18,12 +18,13 @@ func NewUserRepository(db *database.DB) domain.UserRepository {
 }
 
 func (r *userRepository) Create(ctx context.Context, user *entities.User) (int64, error) {
-	query := `INSERT INTO users (username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+	query := `INSERT INTO users (unique_id, username, email, password, nama, role, is_active, is_verified, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
              RETURNING id`
 
 	var id int64
 	err := r.db.QueryRowContext(ctx, query,
+		user.UniqueID,
 		user.Username,
 		user.Email,
 		user.PasswordHash, // ← ADD THIS (missing!)
@@ -36,7 +37,7 @@ func (r *userRepository) Create(ctx context.Context, user *entities.User) (int64
 }
 
 func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
-	query := `SELECT id, username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE id = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -48,7 +49,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
-	query := `SELECT id, username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE email = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -60,7 +61,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entitie
 }
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*entities.User, error) {
-	query := `SELECT id, username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE username = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -72,7 +73,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*e
 }
 
 func (r *userRepository) GetByEmailOrUsername(ctx context.Context, emailOrUsername string) (*entities.User, error) {
-	query := `SELECT id, username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE (email = $1 OR username = $1) AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -100,7 +101,7 @@ func (r *userRepository) CheckUsernameExists(ctx context.Context, username strin
 }
 
 func (r *userRepository) Update(ctx context.Context, user *entities.User) error {
-	query := `UPDATE users SET username = $1, email = $2, password_hash = $3, name = $4, 
+	query := `UPDATE users SET username = $1, email = $2, password = $3, nama = $4, 
              role = $5, is_active = $6, is_verified = $7, updated_at = NOW()
              WHERE id = $8 AND deleted_at IS NULL`
 
@@ -151,7 +152,7 @@ func (r *userRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *userRepository) GetAll(ctx context.Context, limit int, offset int) ([]entities.User, int64, error) {
-	query := `SELECT id, username, email, password_hash, name, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE deleted_at IS NULL
              ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 

@@ -3,11 +3,22 @@ package usecase
 import (
 	"context"
 
-	// "REFACTORING_MAUNA/internal/domain"
-	// "REFACTORING_MAUNA/internal/domain/entities"
 	"REFACTORING_MAUNA/internal/dto"
-	// "REFACTORING_MAUNA/pkg/security"
 )
+
+type TokenClaims struct {
+	UserID   int64
+	Subject  string
+	Username string
+	Email    string
+	Role     string
+}
+
+type TokenManager interface {
+	GenerateAccessToken(userID int64, username, email, role string) (string, error)
+	GenerateRefreshToken(userID int64) (string, error)
+	VerifyToken(token string) (TokenClaims, error)
+}
 
 type AuthUsecase interface {
 	Login(ctx context.Context, req dto.LoginRequest) (dto.LoginResponse, error)

@@ -1,4 +1,8 @@
-CREATE TYPE shop_item_type AS ENUM ('streak_freeze', 'badge', 'boost');
+DO $$
+BEGIN
+    CREATE TYPE shop_item_type AS ENUM ('streak_freeze', 'badge', 'boost');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE shop_items (
     id BIGSERIAL PRIMARY KEY,

@@ -8,6 +8,7 @@ import (
 	"REFACTORING_MAUNA/internal/repository"
 	"REFACTORING_MAUNA/internal/service"
 	"REFACTORING_MAUNA/pkg/database"
+	"REFACTORING_MAUNA/pkg/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -21,6 +22,8 @@ type Route struct {
 // ← RENAME: routes → availableRoutes
 var availableRoutes = []Route{
 	{Path: "/", Method: "GET", Handler: "RootHandler"},
+	{Path: "/swagger/", Method: "GET", Handler: "SwaggerUI"},
+	{Path: "/swagger/openapi.json", Method: "GET", Handler: "SwaggerSpec"},
 	{Path: "/health", Method: "GET", Handler: "HealthHandler"},
 	{Path: "/metrics", Method: "GET", Handler: "PrometheusMetrics"},
 	{Path: "/api/auth/login", Method: "POST", Handler: "Login"},
@@ -50,14 +53,17 @@ func PrintRoutes() {
 func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	tokenManager := security.NewJWTManager()
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo)
+	authService := service.NewAuthService(userRepo, tokenManager)
 
 	// Register route groups (sekarang OK!)
-	routes.RegisterAuthRoutes(mux, authService) // ← No conflict now!
+	routes.RegisterAuthRoutes(mux, authService, tokenManager) // ← No conflict now!
 
 	// Public routes (health, root)
+	mux.HandleFunc("GET /swagger/", SwaggerUIHandler())
+	mux.HandleFunc("GET /swagger/openapi.json", SwaggerSpecHandler())
 	mux.HandleFunc("GET /health", HealthHandler(db))
 	mux.Handle("GET /metrics", promhttp.Handler())
 	mux.HandleFunc("GET /", RootHandler())

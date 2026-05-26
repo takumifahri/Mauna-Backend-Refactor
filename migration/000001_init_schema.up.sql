@@ -1,6 +1,20 @@
-CREATE TYPE user_role AS ENUM ('admin', 'user', 'moderator');
-CREATE TYPE user_tier AS ENUM ('bronze', 'silver', 'gold', 'diamond', 'platinum');
-CREATE TYPE kamus_category AS ENUM ('ALPHABET', 'NUMBERS', 'IMBUHAN', 'KOSAKATA');
+DO $$
+BEGIN
+    CREATE TYPE user_role AS ENUM ('admin', 'user', 'moderator');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    CREATE TYPE user_tier AS ENUM ('bronze', 'silver', 'gold', 'diamond', 'platinum');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+    CREATE TYPE kamus_category AS ENUM ('ALPHABET', 'NUMBERS', 'IMBUHAN', 'KOSAKATA');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
@@ -68,20 +82,3 @@ CREATE TRIGGER trg_kamus_set_updated_at
 BEFORE UPDATE ON kamus
 FOR EACH ROW
 EXECUTE FUNCTION set_timestamp_updated_at();
-
-CREATE OR REPLACE FUNCTION set_users_unique_id_after_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.unique_id IS NULL OR NEW.unique_id = '' THEN
-    UPDATE users
-    SET unique_id = 'USR-' || LPAD(NEW.id::TEXT, 5, '0')
-    WHERE id = NEW.id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_users_set_unique_id_after_insert
-AFTER INSERT ON users
-FOR EACH ROW
-EXECUTE FUNCTION set_users_unique_id_after_insert();

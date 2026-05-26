@@ -3,31 +3,29 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
-	"time"
 
 	"REFACTORING_MAUNA/internal/domain"
-	"REFACTORING_MAUNA/internal/usecase"
-
 	"REFACTORING_MAUNA/internal/domain/entities"
 	"REFACTORING_MAUNA/internal/dto"
+	"REFACTORING_MAUNA/internal/usecase"
 	"REFACTORING_MAUNA/pkg/security"
 
+	"github.com/google/uuid"
 )
-
-// AuthUsecase interface
 
 // authService implementation
 type authService struct {
-	userRepo   domain.UserRepository
-	jwtManager *security.JWTManager
+	userRepo     domain.UserRepository
+	tokenManager usecase.TokenManager
 }
 
 // Constructor
-func NewAuthService(userRepo domain.UserRepository) usecase.AuthUsecase {
+func NewAuthService(userRepo domain.UserRepository, tokenManager usecase.TokenManager) usecase.AuthUsecase {
 	return &authService{
-		userRepo:   userRepo,
-		jwtManager: security.NewJWTManager(),
+		userRepo:     userRepo,
+		tokenManager: tokenManager,
 	}
 }
 
@@ -55,7 +53,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (dto.Logi
 	}
 
 	// 4. Generate tokens
-	accessToken, err := s.jwtManager.GenerateAccessToken(
+	accessToken, err := s.tokenManager.GenerateAccessToken(
 		user.ID,
 		user.Username,
 		user.Email,
@@ -65,7 +63,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (dto.Logi
 		return dto.LoginResponse{}, domain.ErrInternal
 	}
 
-	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	refreshToken, err := s.tokenManager.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return dto.LoginResponse{}, domain.ErrInternal
 	}
@@ -105,7 +103,8 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 	// Check if email exists
 	exists, err := s.userRepo.CheckEmailExists(ctx, req.Email)
 	if err != nil {
-		return dto.RegisterResponse{}, domain.ErrInternal
+		slog.ErrorContext(ctx, "register_check_email_failed", slog.Any("error", err), slog.String("email", req.Email))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
 	}
 	if exists {
 		return dto.RegisterResponse{}, domain.ErrUserAlreadyExists
@@ -114,7 +113,8 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 	// Check if username exists
 	exists, err = s.userRepo.CheckUsernameExists(ctx, req.Username)
 	if err != nil {
-		return dto.RegisterResponse{}, domain.ErrInternal
+		slog.ErrorContext(ctx, "register_check_username_failed", slog.Any("error", err), slog.String("username", req.Username))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
 	}
 	if exists {
 		return dto.RegisterResponse{}, domain.ErrUserAlreadyExists
@@ -123,7 +123,8 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 	// Hash password
 	hashedPassword, err := security.HashPassword(req.Password)
 	if err != nil {
-		return dto.RegisterResponse{}, domain.ErrInternal
+		slog.ErrorContext(ctx, "register_hash_password_failed", slog.Any("error", err))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
 	}
 
 	// Convert name to pointer
@@ -131,6 +132,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 
 	// Create user in database
 	user := &entities.User{
+		UniqueID:     uuid.NewString(),
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
@@ -142,14 +144,29 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 
 	userID, err := s.userRepo.Create(ctx, user)
 	if err != nil {
-		return dto.RegisterResponse{}, domain.ErrInternal
+		slog.ErrorContext(ctx, "register_create_user_failed", slog.Any("error", err), slog.String("email", req.Email), slog.String("username", req.Username))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
+	}
+
+	createdUser, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "register_get_created_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
+	}
+
+	var createdName string
+	if createdUser.Nama != nil {
+		createdName = *createdUser.Nama
 	}
 
 	return dto.RegisterResponse{
-		ID:        userID,
-		Username:  req.Username,
-		Email:     req.Email,
-		CreatedAt: time.Now(),
+		ID:        createdUser.ID,
+		UniqueID:  createdUser.UniqueID,
+		Username:  createdUser.Username,
+		Email:     createdUser.Email,
+		Name:      createdName,
+		Role:      string(createdUser.Role),
+		CreatedAt: createdUser.CreatedAt,
 	}, nil
 }
 
@@ -191,7 +208,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (dt
 		return dto.AuthResponse{}, domain.ErrUnauthorized
 	}
 
-	claims, err := s.jwtManager.VerifyToken(refreshToken)
+	claims, err := s.tokenManager.VerifyToken(refreshToken)
 	if err != nil {
 		return dto.AuthResponse{}, domain.ErrUnauthorized
 	}
@@ -209,12 +226,12 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (dt
 		return dto.AuthResponse{}, domain.ErrUnauthorized
 	}
 
-	accessToken, err := s.jwtManager.GenerateAccessToken(user.ID, user.Username, user.Email, string(user.Role))
+	accessToken, err := s.tokenManager.GenerateAccessToken(user.ID, user.Username, user.Email, string(user.Role))
 	if err != nil {
 		return dto.AuthResponse{}, domain.ErrInternal
 	}
 
-	newRefreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID)
+	newRefreshToken, err := s.tokenManager.GenerateRefreshToken(user.ID)
 	if err != nil {
 		return dto.AuthResponse{}, domain.ErrInternal
 	}

@@ -1,5 +1,9 @@
 -- Create difficulty level enum
-CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard');
+DO $$
+BEGIN
+    CREATE TYPE difficulty_level AS ENUM ('easy', 'medium', 'hard');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE badges (
     id BIGSERIAL PRIMARY KEY,

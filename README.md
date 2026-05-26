@@ -135,6 +135,17 @@ Pastikan kamu sudah menginstal `migrate` di sistem kamu (via `pacman -S migrate`
    make run
    ```
 
+4. **Buka Swagger UI**:
+   ```text
+   http://localhost:8081/swagger/
+   ```
+
+OpenAPI JSON tersedia di:
+
+```text
+http://localhost:8081/swagger/openapi.json
+```
+
 ## Observability Lokal
 Project ini sudah menyiapkan structured logging, Prometheus metrics, Loki logs, Grafana, dan OpenTelemetry tracing ke Jaeger.
 
@@ -186,6 +197,40 @@ Contoh query Loki di Grafana Explore:
 ```
 
 Log request membawa `trace_id` dan `span_id`, jadi error di Loki bisa dicari kembali di Jaeger.
+
+## Auth JWT dan Cookies
+Login akan mengembalikan token di JSON response dan juga menulis cookie:
+
+```text
+access_token  - HttpOnly, 24 jam
+refresh_token - HttpOnly, 7 hari
+```
+
+Endpoint protected seperti `POST /api/auth/change-password` membaca JWT dari cookie `access_token`.
+Sebagai fallback untuk client non-browser, header ini juga didukung:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+Refresh token bisa dikirim dari cookie `refresh_token` atau body JSON:
+
+```json
+{ "refresh_token": "..." }
+```
+
+Untuk local development gunakan:
+
+```env
+COOKIE_SECURE=false
+```
+
+Untuk HTTPS production gunakan:
+
+```env
+COOKIE_SECURE=true
+JWT_SECRET_KEY=secret-yang-panjang-dan-random
+```
 
    ## 📜 Makefile Commands
 Gunakan perintah `make` untuk mempercepat alur kerja DevOps di terminal Arch Linux:

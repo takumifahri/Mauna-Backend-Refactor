@@ -17,28 +17,27 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.RefreshTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: "Invalid request",
-		})
-		return
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			logRequestError(r, "refresh_token_decode_failed", http.StatusBadRequest, err)
+			writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
+			return
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.authService.RefreshToken(ctx, req.RefreshToken)
+	refreshToken := getRefreshToken(r, req.RefreshToken)
+	resp, err := h.authService.RefreshToken(ctx, refreshToken)
 	if err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		w.WriteHeader(statusCode)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		logRequestError(r, "refresh_token_failed", statusCode, err)
+		writeErrorResponse(w, statusCode, err)
 		return
 	}
+
+	setAuthCookies(w, resp.AccessToken, resp.RefreshToken)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -17,29 +17,29 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req dto.LogoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: "Invalid request",
-		})
-		return
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			logRequestError(r, "logout_decode_failed", http.StatusBadRequest, err)
+			writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
+			return
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	err := h.authService.Logout(ctx, req.RefreshToken)
+	refreshToken := getRefreshToken(r, req.RefreshToken)
+	err := h.authService.Logout(ctx, refreshToken)
 	if err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		w.WriteHeader(statusCode)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		logRequestError(r, "logout_failed", statusCode, err)
+		writeErrorResponse(w, statusCode, err)
 		return
 	}
 
+	clearAuthCookies(w)
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.LogoutResponse{
 		Success: true,

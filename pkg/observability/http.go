@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/felixge/httpsnoop"
@@ -61,10 +62,7 @@ func requestLogger(next http.Handler, logger *slog.Logger) http.Handler {
 			statusCode = http.StatusOK
 		}
 
-		path := r.Pattern
-		if path == "" {
-			path = r.URL.Path
-		}
+		path := routePath(r)
 		status := strconv.Itoa(statusCode)
 
 		httpRequestsTotal.WithLabelValues(r.Method, path, status).Inc()
@@ -96,4 +94,16 @@ func requestLogger(next http.Handler, logger *slog.Logger) http.Handler {
 
 		logger.LogAttrs(r.Context(), level, "http_request", attrs...)
 	})
+}
+
+func routePath(r *http.Request) string {
+	if r.Pattern == "" {
+		return r.URL.Path
+	}
+
+	if strings.HasPrefix(r.Pattern, r.Method+" ") {
+		return strings.TrimPrefix(r.Pattern, r.Method+" ")
+	}
+
+	return r.Pattern
 }

@@ -27,6 +27,7 @@ func HealthHandler(db *database.DB) http.HandlerFunc {
 		if err := db.Health(); err != nil {
 			resp.Status = "unhealthy"
 			resp.Message = fmt.Sprintf("Database error: %v", err)
+			logRequestError(r, "health_check_failed", http.StatusServiceUnavailable, err)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)

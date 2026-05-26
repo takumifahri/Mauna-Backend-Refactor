@@ -1,5 +1,9 @@
 -- Create progress status enum
-CREATE TYPE progress_status AS ENUM ('not_started', 'in_progress', 'completed', 'failed');
+DO $$
+BEGIN
+    CREATE TYPE progress_status AS ENUM ('not_started', 'in_progress', 'completed', 'failed');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE progress (
     id BIGSERIAL PRIMARY KEY,
