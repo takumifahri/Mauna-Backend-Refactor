@@ -58,7 +58,7 @@ func RootHandler() http.HandlerFunc {
 			Message:   "Mauna Backend API",
 			Timestamp: time.Now().Format(time.RFC3339),
 			Data: map[string]string{
-				"version":     "1.0.0",
+				"version":     "2.0.0",
 				"name":        "Mauna Backend",
 				"description": "Sign Language Learning API",
 			},

@@ -60,10 +60,23 @@ seed-build:
 ## seed-run: run built seed binary
 seed-run:
 	./bin/seed
+
+## observability-up: start local Jaeger for tracing
+observability-up:
+	mkdir -p logs
+	docker compose -f docker-compose.observability.yml up -d
+
+## observability-down: stop local Jaeger
+observability-down:
+	docker compose -f docker-compose.observability.yml down
+
+## observability-logs: tail local Jaeger logs
+observability-logs:
+	docker compose -f docker-compose.observability.yml logs -f jaeger
 	
 ## tidy: format code and tidy go modules
 tidy:
 	go fmt ./...
 	go mod tidy
 
-.PHONY: help run build test migrate-create migrate-up migrate-down migrate-reset migrate-version migrate-force seed tidy
+.PHONY: help run build test migrate-create migrate-up migrate-down migrate-reset migrate-version migrate-force seed observability-up observability-down observability-logs tidy

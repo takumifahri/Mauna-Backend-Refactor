@@ -134,6 +134,34 @@ Pastikan kamu sudah menginstal `migrate` di sistem kamu (via `pacman -S migrate`
    ```bash
    make run
    ```
+
+## Observability Lokal
+Project ini sudah menyiapkan structured logging dan OpenTelemetry tracing.
+Untuk melihat trace di Jaeger:
+
+1. Jalankan Jaeger:
+   ```bash
+   make observability-up
+   ```
+
+2. Set environment tracing di `.env`:
+   ```env
+   OTEL_TRACES_EXPORTER=otlp
+   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+   ```
+
+3. Jalankan aplikasi:
+   ```bash
+   make run
+   ```
+
+4. Buka Jaeger UI:
+   ```text
+   http://localhost:16686
+   ```
+
+Log request akan membawa `trace_id` dan `span_id`, jadi error di log bisa dicari kembali di Jaeger.
+
    ## 📜 Makefile Commands
 Gunakan perintah `make` untuk mempercepat alur kerja DevOps di terminal Arch Linux:
 * `make run` - Menjalankan aplikasi secara lokal dari `cmd/api/main.go`.
@@ -142,6 +170,9 @@ Gunakan perintah `make` untuk mempercepat alur kerja DevOps di terminal Arch Lin
 * `make migrate-create name=...` - Membuat file migrasi baru (Up & Down SQL) di folder `migrations/`.
 * `make migrate-up` - Menerapkan semua perubahan skema ke database PostgreSQL.
 * `make migrate-down` - Membatalkan satu langkah migrasi terakhir (Rollback).
+* `make observability-up` - Menjalankan Jaeger lokal untuk tracing.
+* `make observability-down` - Mematikan Jaeger lokal.
+* `make observability-logs` - Melihat log Jaeger lokal.
 * `make tidy` - Merapikan `go.mod` dan melakukan standarisasi format kode (`go fmt`).
 
 ---

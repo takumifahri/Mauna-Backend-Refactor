@@ -1,78 +1,128 @@
 package main
 
 import (
-    "context"
-    "log"
-    "net/http"
-    "os"
-    "os/signal"
-    "syscall"
-    "time"
+	"context"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-    "REFACTORING_MAUNA/pkg/database"
-    httphandler "REFACTORING_MAUNA/internal/delivery/http"
+	httphandler "REFACTORING_MAUNA/internal/delivery/http"
+	"REFACTORING_MAUNA/pkg/database"
+	"REFACTORING_MAUNA/pkg/logger"
+	"REFACTORING_MAUNA/pkg/observability"
 
-    "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-    // Load .env
-    if err := godotenv.Load(); err != nil {
-        log.Println("⚠️  Warning: .env file not found")
-    }
+	envLoaded := true
+	if err := godotenv.Load(); err != nil {
+		envLoaded = false
+	}
 
-    // Connect to database
-    db, err := database.NewFromEnv()
-    if err != nil {
-        log.Fatalf("❌ Failed to connect database: %v", err)
-    }
-    defer db.Close()
+	appLogger, closeLogger, err := logger.New()
+	if err != nil {
+		slog.Error("failed to initialize logger", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer func() {
+		if err := closeLogger(); err != nil {
+			slog.Error("failed to close logger", slog.Any("error", err))
+		}
+	}()
 
-    // Check health
-    if err := db.Health(); err != nil {
-        log.Fatalf("❌ Database health check failed: %v", err)
-    }
+	slog.SetDefault(appLogger)
 
-    log.Println("✅ Database connected successfully!")
-    log.Println("📊 " + db.GetStats())
+	if !envLoaded {
+		appLogger.Warn("env file not found")
+	}
 
-    // Setup HTTP routes
-    mux := http.NewServeMux()
-    httphandler.RegisterRoutes(mux, db)
+	shutdownTelemetry, err := observability.InitTracing(context.Background())
+	if err != nil {
+		appLogger.Error("failed to initialize telemetry", slog.Any("error", err))
+		os.Exit(1)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdownTelemetry(ctx); err != nil {
+			appLogger.Error("failed to shutdown telemetry", slog.Any("error", err))
+		}
+	}()
 
-    // Display available routes
-    httphandler.PrintRoutes()
+	appLogger.Info("telemetry initialized",
+		slog.String("service", getEnv("OTEL_SERVICE_NAME", "mauna-backend")),
+		slog.String("traces_exporter", getEnv("OTEL_TRACES_EXPORTER", "stdout")),
+	)
 
-    // Create HTTP server
-    server := &http.Server{
-        Addr:         ":8080",
-        Handler:      mux,
-        ReadTimeout:  15 * time.Second,
-        WriteTimeout: 15 * time.Second,
-        IdleTimeout:  60 * time.Second,
-    }
+	port := getEnv("APP_PORT", "8081")
 
-    // Start server in goroutine
-    go func() {
-        log.Printf("🚀 Server starting on http://localhost:8080\n")
-        if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            log.Fatalf("❌ Server error: %v", err)
-        }
-    }()
+	// Connect to database
+	db, err := database.NewFromEnv()
+	if err != nil {
+		appLogger.Error("failed to connect database", slog.Any("error", err))
+		os.Exit(1)
+	}
 
-    // Graceful shutdown
-    sigChan := make(chan os.Signal, 1)
-    signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	defer db.Close()
 
-    <-sigChan
-    log.Println("\n⏸️  Shutting down server...")
+	// Check health
+	if err := db.Health(); err != nil {
+		appLogger.Error("database health check failed", slog.Any("error", err))
+		os.Exit(1)
+	}
 
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+	appLogger.Info("database connected", slog.String("stats", db.GetStats()))
 
-    if err := server.Shutdown(ctx); err != nil {
-        log.Printf("❌ Server shutdown error: %v", err)
-    }
+	// Setup HTTP routes
+	mux := http.NewServeMux()
+	httphandler.RegisterRoutes(mux, db)
 
-    log.Println("✅ Server stopped")
+	// Display available routes
+	httphandler.PrintRoutes()
+
+	// Create HTTP server
+	server := &http.Server{
+		Addr:         ":" + port,
+		Handler:      observability.HTTPMiddleware(mux, appLogger),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Start server in goroutine
+	go func() {
+		appLogger.Info("server starting", slog.String("addr", "http://localhost:"+port))
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			appLogger.Error("server error", slog.Any("error", err))
+			os.Exit(1)
+		}
+	}()
+
+	// Graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	<-sigChan
+	appLogger.Info("shutting down server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		appLogger.Error("server shutdown error", slog.Any("error", err))
+	}
+
+	appLogger.Info("server stopped")
+}
+
+func getEnv(key, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
 }

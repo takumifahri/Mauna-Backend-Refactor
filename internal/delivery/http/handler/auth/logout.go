@@ -16,7 +16,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req dto.LogoutResponse
+	var req dto.LogoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(dto.ErrorResponse{
@@ -39,4 +39,10 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.LogoutResponse{
+		Success: true,
+		Message: "Logout successful",
+	})
 }

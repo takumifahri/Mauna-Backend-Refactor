@@ -4,12 +4,12 @@ import (
     "net/http"
 
     "REFACTORING_MAUNA/internal/delivery/http/handler/auth"
-    "REFACTORING_MAUNA/internal/service"
-    "REFACTORING_MAUNA/pkg/database"
+    "REFACTORING_MAUNA/internal/usecase"
+    // "REFACTORING_MAUNA/pkg/database"
 )
 
 // RegisterAuthRoutes registers all auth-related routes
-func RegisterAuthRoutes(mux *http.ServeMux, authService service.AuthUsecase) {
+func RegisterAuthRoutes(mux *http.ServeMux, authService usecase.AuthUsecase) {
     authHandler := auth.NewAuthHandler(authService)
 
     // Auth endpoints

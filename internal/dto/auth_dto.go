@@ -49,6 +49,14 @@ type RegisterResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 type LogoutResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
