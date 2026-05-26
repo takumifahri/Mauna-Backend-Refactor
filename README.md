@@ -23,20 +23,21 @@ lowercase camelCase          = UNEXPORTED (Private) ❌ Hanya bisa di package ya
 Sesuai dengan standar *Go Project Layout*, struktur folder dipisahkan untuk menjaga skalabilitas:
 ```
 Mauna-Backend-Refactor/
-├── .env                      # Environment variables (local, git ignored)
-├── .env.example              # Template environment variables
-├── .gitignore                # Git ignore rules
-├── Makefile                  # Build commands (run, build, test, migrate, seed)
-├── README.md                 # Project documentation
-├── go.mod                    # Go module definition & dependencies
-├── go.sum                    # Dependency checksums
+├── .env                         # Environment variables local (git ignored)
+├── .env.example                 # Template environment variables
+├── .gitignore                   # Git ignore rules
+├── docker-compose.observability.yml # Jaeger, Prometheus, Loki, Alloy, Grafana
+├── Makefile                     # Build, migration, seed, observability commands
+├── README.md                    # Project documentation
+├── go.mod                       # Go module definition & dependencies
+├── go.sum                       # Dependency checksums
 │
-├── cmd/                      # Entry point aplikasi
+├── cmd/                         # Application entry points
 │   ├── app/
-│   │   └── main.go           # Aplikasi utama + DI container
+│   │   └── main.go              # Main API application bootstrap
 │   └── seed/
-│       ├── main.go           # Seed entry point
-│       └── seeder/           # Seeder implementations
+│       ├── main.go              # Database seed entry point
+│       └── seeder/              # Seeder implementations
 │           ├── badge_seeder.go
 │           ├── base.go
 │           ├── dictionary_seeder.go
@@ -48,75 +49,103 @@ Mauna-Backend-Refactor/
 │           └── user_seeder.go
 │
 ├── config/
-│   └── config.go             # Load .env & manage configuration
+│   └── config.go                # Static config helpers
 │
-├── internal/                 # Core business logic (private)
+├── docs/                        # Generated/auxiliary API docs package
+│
+├── internal/                    # Private application code
 │   ├── delivery/http/
-│   │   ├── handler.go        # Global handlers (health, root)
-│   │   ├── route.go          # Route registry & management
-│   │   ├── handler/          # HTTP request handlers per feature
-│   │   │   ├── admin/        # Admin endpoints (empty)
-│   │   │   ├── auth/         # Auth endpoints
+│   │   ├── debug_log.go         # Shared HTTP error logging helper
+│   │   ├── handler.go           # Root and health handlers
+│   │   ├── response.go          # Shared HTTP response helpers
+│   │   ├── route.go             # HTTP dependency wiring and route registry
+│   │   ├── swagger.go           # Swagger UI and OpenAPI spec handlers
+│   │   ├── swagger/
+│   │   │   └── openapi.json     # OpenAPI 3 specification
+│   │   ├── handler/             # HTTP handlers grouped by feature
+│   │   │   ├── auth/
 │   │   │   │   ├── change_password.go
+│   │   │   │   ├── cookie.go
+│   │   │   │   ├── debug_log.go
 │   │   │   │   ├── handler.go
 │   │   │   │   ├── login.go
 │   │   │   │   ├── logout.go
 │   │   │   │   ├── refresh_token.go
-│   │   │   │   └── register.go
-│   │   │   └── user/         # User endpoints (empty)
-│   │   ├── middleware/       # HTTP middleware (empty)
-│   │   └── routes/           # Route registration
+│   │   │   │   ├── register.go
+│   │   │   │   └── response.go
+│   │   │   └── user/
+│   │   │       └── profile/
+│   │   │           └── geProfile.go
+│   │   ├── middleware/
+│   │   │   ├── auth.go          # JWT auth middleware
+│   │   │   └── debug_log.go     # Middleware error logging helper
+│   │   └── routes/
 │   │       └── auth_routes.go
 │   │
-│   ├── domain/               # Business rules & interfaces
-│   │   ├── errors.go         # Domain error definitions
-│   │   ├── repository.go     # Repository interfaces
-│   │   └── entities/         # Data models
-│   │       ├── badge.go      # Badge & UserBadge
-│   │       ├── daily_task.go # Daily task tracking
-│   │       ├── dictionary.go # Kamus (vocabulary)
-│   │       ├── level.go      # Level & SubLevel
-│   │       ├── progress.go   # Progress status enum
-│   │       ├── question.go   # Soal (question types)
-│   │       ├── shop_item.go  # ShopItem & Inventory
+│   ├── domain/                  # Enterprise/domain rules and contracts
+│   │   ├── errors.go            # Domain and wrapped internal errors
+│   │   ├── repository.go        # Repository interfaces
+│   │   └── entities/            # Domain entities
+│   │       ├── badge.go
+│   │       ├── daily_task.go
+│   │       ├── dictionary.go
+│   │       ├── level.go
+│   │       ├── progress.go
+│   │       ├── question.go
+│   │       ├── shop_item.go
 │   │       ├── token_blacklist.go # Token revocation
-│   │       └── user.go       # User role & tier
+│   │       └── user.go
 │   │
-│   ├── dto/                  # Data Transfer Objects
-│   │   ├── auth_dto.go       # Login, Register, ChangePassword DTO
-│   │   └── common_dto.go     # Response wrapper & ErrorResponse
+│   ├── dto/                     # Request/response DTOs
+│   │   ├── auth_dto.go
+│   │   └── common_dto.go
 │   │
-│   ├── repository/           # Data access layer
-│   │   └── auth_repository.go # User CRUD operations
+│   ├── repository/              # Data access implementations
+│   │   └── auth_repository.go
 │   │
-│   ├── service/              # Business logic layer
-│   │   └── auth_service.go   # Auth usecases
+│   ├── service/                 # Usecase implementations / business logic
+│   │   └── auth_service.go
 │   │
-│   ├── routes/               # Route registry (empty)
-│   └── utils/                # Utility functions (empty)
+│   ├── usecase/                 # Application ports / usecase contracts
+│   │   └── auth_usecase.go
+│   └── utils/                   # Internal utilities
 │
-├── migration/                # Database schema versioning
-│   └── 000001-013_*.up/down.sql # 13 migrations
+├── migration/                   # Database schema versioning
+│   └── 000001-013_*.up/down.sql # SQL migrations
 │
-├── model/                    # Pre-trained ML models
+├── model/                       # Pre-trained ML models
 │   ├── mauna_alphabet_label_map.npy
 │   ├── mauna_alphabet_model.pkl
 │   ├── mauna_number_label_map.npy
 │   └── mauna_number_model.pkl
 │
-└── pkg/                      # Reusable packages (public)
+├── observability/               # Local observability stack config
+│   ├── alloy/
+│   │   └── config.alloy         # Log shipping to Loki
+│   ├── grafana/provisioning/datasources/
+│   │   └── datasources.yml      # Grafana datasource provisioning
+│   └── prometheus/
+│       └── prometheus.yml       # Prometheus scrape config
+│
+└── pkg/                         # Reusable infrastructure packages
     ├── database/
-    │   └── connection.go      # PostgreSQL setup via sqlx
+    │   └── connection.go        # PostgreSQL setup via sqlx
     │
-    ├── security/             # Security utilities
-    │   ├── encryption.go      # AES-256-GCM encryption/decryption
-    │   ├── hash.go            # SHA256, SHA512, MD5 functions
-    │   ├── jwt.go             # JWT token generation & verification
-    │   └── password.go        # Argon2id password hashing
+    ├── logger/
+    │   └── logger.go            # Structured JSON logger
     │
-    ├── errors/               # Custom errors (empty)
-    ├── logger/               # Logging utilities (empty)
-    └── validation/           # Input validation (empty)
+    ├── observability/
+    │   ├── http.go              # HTTP metrics, tracing, request logging
+    │   └── otel.go              # OpenTelemetry tracer provider
+    │
+    ├── security/
+    │   ├── encryption.go        # AES-256-GCM encryption/decryption
+    │   ├── hash.go              # SHA256, SHA512, MD5 helpers
+    │   ├── jwt.go               # JWT TokenManager implementation
+    │   └── password.go          # Argon2id password hashing
+    │
+    ├── errors/
+    └── validation/
 ```
 ---
 
