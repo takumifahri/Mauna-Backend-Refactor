@@ -1,21 +1,17 @@
 package entities
 
-import "time"
+import (
+	"time"
 
-type ProgressStatus string
-
-const (
-    StatusNotStarted ProgressStatus = "not_started"
-    StatusInProgress ProgressStatus = "in_progress"
-    StatusCompleted  ProgressStatus = "completed"
-    StatusFailed     ProgressStatus = "failed"
+	"REFACTORING_MAUNA/internal/domain/constant"
 )
+
 
 type Progress struct {
     ID                  int64              `db:"id"`
     UserID              int64              `db:"user_id"`
     SubLevelID          int64              `db:"sublevel_id"`
-    Status              ProgressStatus     `db:"status"`
+    Status              constant.ProgressStatus     `db:"status"`
     TotalQuestions      int                `db:"total_questions"`
     CorrectAnswers      int                `db:"correct_answers"`
     Score               int                `db:"score"`

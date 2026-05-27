@@ -1,21 +1,18 @@
 package entities
 
-import "time"
+import (
+	"time"
 
-type DictionaryCategory string
-
-const (
-	CategoryAlphabet DictionaryCategory = "ALPHABET"
-	CategoryNumbers  DictionaryCategory = "NUMBERS"
-	CategoryImbuhan  DictionaryCategory = "IMBUHAN"
-	CategoryKosakata DictionaryCategory = "KOSAKATA"
+	"REFACTORING_MAUNA/internal/domain/constant"
 )
+
+
 
 type Kamus struct {
 	ID          int64              `db:"id"`
 	WordText    string             `db:"word_text"`
 	Definition  string             `db:"definition"`
-	Category    DictionaryCategory `db:"category"`
+	Category    constant.DictionaryCategory `db:"category"`
 	ImageURLRef *string            `db:"image_url_ref"`
 	VideoURL    *string            `db:"video_url"`
 	CreatedAt   time.Time          `db:"created_at"`

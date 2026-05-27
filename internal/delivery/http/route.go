@@ -3,7 +3,9 @@ package http
 import (
 	"fmt"
 	"net/http"
+	"time"
 
+	"REFACTORING_MAUNA/internal/delivery/http/middleware"
 	"REFACTORING_MAUNA/internal/delivery/http/routes"
 	"REFACTORING_MAUNA/internal/repository"
 	"REFACTORING_MAUNA/internal/service"
@@ -31,6 +33,10 @@ var availableRoutes = []Route{
 	{Path: "/api/auth/change-password", Method: "POST", Handler: "ChangePassword"},
 	{Path: "/api/auth/logout", Method: "POST", Handler: "Logout"},
 	{Path: "/api/auth/refresh-token", Method: "POST", Handler: "RefreshToken"},
+	{Path: "/api/profile", Method: "GET", Handler: "GetProfile"},
+	{Path: "/api/profile", Method: "PATCH", Handler: "UpdateProfile"},
+	{Path: "/api/profile/password", Method: "PUT", Handler: "ProfileChangePassword"},
+	{Path: "/api/profile", Method: "DELETE", Handler: "DeactivateAccount"},
 }
 
 // GetRoutes returns all available routes
@@ -57,9 +63,13 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, tokenManager)
+	profileService := service.NewProfileService(userRepo)
+	rateLimiter := service.NewRateLimiterService(time.Minute)
+	rateLimitMiddleware := middleware.NewRateLimitMiddleware(rateLimiter)
 
 	// Register route groups (sekarang OK!)
-	routes.RegisterAuthRoutes(mux, authService, tokenManager) // ← No conflict now!
+	routes.RegisterAuthRoutes(mux, authService, tokenManager, rateLimitMiddleware) // ← No conflict now!
+	routes.RegisterProfileRoutes(mux, profileService, tokenManager, rateLimitMiddleware)
 
 	// Public routes (health, root)
 	mux.HandleFunc("GET /swagger/", SwaggerUIHandler())

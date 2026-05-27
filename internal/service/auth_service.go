@@ -8,6 +8,7 @@ import (
 
 	"REFACTORING_MAUNA/internal/domain"
 	"REFACTORING_MAUNA/internal/domain/entities"
+	"REFACTORING_MAUNA/internal/domain/constant"
 	"REFACTORING_MAUNA/internal/dto"
 	"REFACTORING_MAUNA/internal/usecase"
 	"REFACTORING_MAUNA/pkg/security"
@@ -137,7 +138,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		Nama:         &name,             // Use pointer
-		Role:         entities.RoleUser, // Use constant
+		Role:         constant.RoleUser, // Use constant
 		IsActive:     true,
 		IsVerified:   false,
 	}

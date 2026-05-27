@@ -37,7 +37,10 @@ func (r *userRepository) Create(ctx context.Context, user *entities.User) (int64
 }
 
 func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+             avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
+             streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
+             created_at, updated_at, deleted_at, last_login
              FROM users WHERE id = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -49,7 +52,10 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+             avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
+             streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
+             created_at, updated_at, deleted_at, last_login
              FROM users WHERE email = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -61,7 +67,10 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entitie
 }
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+             avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
+             streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
+             created_at, updated_at, deleted_at, last_login
              FROM users WHERE username = $1 AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -73,7 +82,10 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*e
 }
 
 func (r *userRepository) GetByEmailOrUsername(ctx context.Context, emailOrUsername string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+             avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
+             streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
+             created_at, updated_at, deleted_at, last_login
              FROM users WHERE (email = $1 OR username = $1) AND deleted_at IS NULL`
 
 	user := &entities.User{}
@@ -131,10 +143,57 @@ func (r *userRepository) Update(ctx context.Context, user *entities.User) error 
 	return nil
 }
 
-func (r *userRepository) Delete(ctx context.Context, id int64) error {
-	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1`
+func (r *userRepository) UpdateProfile(ctx context.Context, user *entities.User) error {
+	query := `UPDATE users SET username = $1, email = $2, nama = $3, telpon = $4, avatar_url = $5, bio = $6, updated_at = NOW()
+             WHERE id = $7 AND deleted_at IS NULL`
+
+	result, err := r.db.ExecContext(ctx, query,
+		user.Username,
+		user.Email,
+		user.Nama,
+		user.Telpon,
+		user.AvatarURL,
+		user.Bio,
+		user.ID,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *userRepository) Deactivate(ctx context.Context, id int64) error {
+	query := `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
 
 	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
+func (r *userRepository) Delete(ctx context.Context, unique_id string) error {
+	query := `UPDATE users SET deleted_at = NOW() WHERE unique_id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, unique_id)
 	if err != nil {
 		return err
 	}

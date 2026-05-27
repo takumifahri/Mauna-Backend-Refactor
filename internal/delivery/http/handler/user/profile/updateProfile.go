@@ -3,6 +3,7 @@ package profile
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,35 +12,32 @@ import (
 	"REFACTORING_MAUNA/internal/dto"
 )
 
-func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: "Unauthorized",
-		})
+		writeProfileErrorResponse(w, http.StatusUnauthorized, domain.ErrUnauthorized)
+		return
+	}
+
+	var req dto.UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.WarnContext(r.Context(), "profile_update_decode_failed", slog.Any("error", err))
+		writeProfileErrorResponse(w, http.StatusBadRequest, domain.ErrInvalidRequest)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.profileService.GetProfile(ctx, claims.UserID)
+	resp, err := h.profileService.UpdateProfile(ctx, claims.UserID, req)
 	if err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(statusCode)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		writeProfileErrorResponse(w, statusCode, err)
 		return
 	}
 
@@ -47,7 +45,7 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response{
 		Status:    "success",
-		Message:   "Profile retrieved successfully",
+		Message:   "Profile updated successfully",
 		Data:      resp,
 		Timestamp: time.Now().Format(time.RFC3339),
 	})

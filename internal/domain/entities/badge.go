@@ -26,4 +26,7 @@ type UserBadge struct {
     UserID   int64     `db:"user_id"`
     BadgeID  int64     `db:"badge_id"`
     EarnedAt time.Time `db:"earned_at"`
+    CreatedAt time.Time `db:"created_at"`
+    UpdatedAt *time.Time `db:"updated_at"`
+    DeletedAt *time.Time `db:"deleted_at"`
 }

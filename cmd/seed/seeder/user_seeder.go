@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"REFACTORING_MAUNA/internal/domain/entities"
+	"REFACTORING_MAUNA/internal/domain/constant"
+
 	"REFACTORING_MAUNA/pkg/security"
 
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ type userData struct {
 	Password   string
 	Nama       string
 	Telpon     string
-	Role       entities.UserRole
+	Role       constant.UserRole
 	IsActive   bool
 	IsVerified bool
 	Bio        string
@@ -46,7 +47,7 @@ func (s *UserSeeder) Run() error {
 			Password:   "AdminPass123!",
 			Nama:       "Site Admin",
 			Telpon:     "123-456-7890",
-			Role:       entities.RoleAdmin,
+			Role:       constant.RoleAdmin,
 			IsActive:   true,
 			IsVerified: true,
 			Bio:        "Administrator account",
@@ -57,7 +58,7 @@ func (s *UserSeeder) Run() error {
 			Password:   "ModPass123!",
 			Nama:       "Site Moderator",
 			Telpon:     "098-765-4321",
-			Role:       entities.RoleModerator,
+			Role:       constant.RoleModerator,
 			IsActive:   true,
 			IsVerified: true,
 			Bio:        "Moderator account",
@@ -68,7 +69,7 @@ func (s *UserSeeder) Run() error {
 			Password:   "Password123",
 			Nama:       "John Doe",
 			Telpon:     "123-456-7890",
-			Role:       entities.RoleUser,
+			Role:       constant.RoleUser,
 			IsActive:   true,
 			IsVerified: false,
 			Bio:        "Sample user account",
@@ -79,7 +80,7 @@ func (s *UserSeeder) Run() error {
 			Password:   "Password123",
 			Nama:       "Jane Doe",
 			Telpon:     "321-654-0987",
-			Role:       entities.RoleUser,
+			Role:       constant.RoleUser,
 			IsActive:   true,
 			IsVerified: true,
 			Bio:        "Another sample user",

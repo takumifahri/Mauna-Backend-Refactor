@@ -3,6 +3,7 @@ package profile
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,35 +12,31 @@ import (
 	"REFACTORING_MAUNA/internal/dto"
 )
 
-func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	claims, ok := middleware.ClaimsFromContext(r.Context())
 	if !ok {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: "Unauthorized",
-		})
+		writeProfileErrorResponse(w, http.StatusUnauthorized, domain.ErrUnauthorized)
+		return
+	}
+
+	var req dto.ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.WarnContext(r.Context(), "profile_change_password_decode_failed", slog.Any("error", err))
+		writeProfileErrorResponse(w, http.StatusBadRequest, domain.ErrInvalidRequest)
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.profileService.GetProfile(ctx, claims.UserID)
-	if err != nil {
+	if err := h.profileService.ChangePassword(ctx, claims.UserID, req); err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(statusCode)
-		json.NewEncoder(w).Encode(dto.ErrorResponse{
-			Status:  "error",
-			Message: err.Error(),
-		})
+		writeProfileErrorResponse(w, statusCode, err)
 		return
 	}
 
@@ -47,8 +44,7 @@ func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response{
 		Status:    "success",
-		Message:   "Profile retrieved successfully",
-		Data:      resp,
+		Message:   "Password changed successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	})
 }
