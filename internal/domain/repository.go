@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"REFACTORING_MAUNA/internal/domain/entities"
+	"REFACTORING_MAUNA/internal/dto/admin"
 )
 
 // UserRepository interface untuk User operations
@@ -110,4 +111,14 @@ type PasswordResetTokenRepository interface {
 	MarkUsed(ctx context.Context, id int64) error
 	DeleteActiveByUserID(ctx context.Context, userID string) error
 	DeleteExpired(ctx context.Context, before time.Time) error
+}
+
+type ManagementUsersRepository interface {
+	List(ctx context.Context, filter admin.ManagementUsersFilter) (admin.ManagementUsersListResponse, error)
+	GetByID(ctx context.Context, id string, includeDeleted bool) (admin.ManagementUserResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementUserRequest) (string, error)
+	Update(ctx context.Context, id string, req admin.UpdateManagementUserRequest) error
+	SoftDelete(ctx context.Context, id string) error
+	HardDelete(ctx context.Context, id string) error
+	Restore(ctx context.Context, id string) error
 }

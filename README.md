@@ -294,4 +294,4 @@ Setiap layer hanya berkomunikasi melalui *interface* yang didefinisikan di dalam
 
 
 ---
-*Developed by takumifahri | Developed on MSI Cyborg 15 A12VF (RTX 4060)*
+*Developed by takumifahri*

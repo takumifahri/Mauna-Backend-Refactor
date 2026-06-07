@@ -94,7 +94,7 @@ func (s *authService) Login(ctx context.Context, req dto.LoginRequest) (dto.Logi
 	return dto.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		ExpiresIn:    86400, // 24 hours in seconds
+		ExpiresIn:    security.AccessTokenExpiresIn,
 		User: dto.UserDataResponse{
 			ID:         user.ID,
 			Username:   user.Username,
@@ -360,7 +360,7 @@ func (s *authService) RefreshToken(ctx context.Context, refreshToken string) (dt
 	return dto.AuthResponse{
 		AccessToken:  accessToken,
 		RefreshToken: newRefreshToken,
-		ExpiresIn:    86400,
+		ExpiresIn:    security.AccessTokenExpiresIn,
 		User: dto.UserDataResponse{
 			ID:         user.ID,
 			Username:   user.Username,

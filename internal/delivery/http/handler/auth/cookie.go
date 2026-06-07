@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"REFACTORING_MAUNA/pkg/security"
 )
 
 const (
@@ -13,8 +15,8 @@ const (
 )
 
 func setAuthCookies(w http.ResponseWriter, accessToken, refreshToken string) {
-	setTokenCookie(w, accessTokenCookieName, accessToken, 24*time.Hour)
-	setTokenCookie(w, refreshTokenCookieName, refreshToken, 7*24*time.Hour)
+	setTokenCookie(w, accessTokenCookieName, accessToken, security.AccessTokenDuration)
+	setTokenCookie(w, refreshTokenCookieName, refreshToken, security.RefreshTokenDuration)
 }
 
 func clearAuthCookies(w http.ResponseWriter) {

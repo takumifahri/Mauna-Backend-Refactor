@@ -5,15 +5,10 @@ import (
 	"time"
 
 	"REFACTORING_MAUNA/internal/dto"
+	"REFACTORING_MAUNA/pkg/security"
 )
 
-type TokenClaims struct {
-	UserID   string
-	Subject  string
-	Username string
-	Email    string
-	Role     string
-}
+type TokenClaims = security.TokenClaims
 
 type TokenManager interface {
 	GenerateAccessToken(userID string, username, email, role string) (string, error)

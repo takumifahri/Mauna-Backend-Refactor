@@ -5,8 +5,6 @@ import (
 	"os"
 	"time"
 
-	"REFACTORING_MAUNA/internal/usecase"
-
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -18,9 +16,23 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
+type TokenClaims struct {
+	UserID   string
+	Subject  string
+	Username string
+	Email    string
+	Role     string
+}
+
 type JWTManager struct {
 	secretKey string
 }
+
+const (
+	AccessTokenDuration  = 15 * time.Minute
+	RefreshTokenDuration = 7 * 24 * time.Hour
+	AccessTokenExpiresIn = int(AccessTokenDuration / time.Second)
+)
 
 func NewJWTManager() *JWTManager {
 	secretKey := os.Getenv("JWT_SECRET_KEY")
@@ -32,14 +44,15 @@ func NewJWTManager() *JWTManager {
 
 // GenerateToken generates JWT access token
 func (jm *JWTManager) GenerateAccessToken(userID string, username, email, role string) (string, error) {
+	now := time.Now()
 	claims := JWTClaims{
 		UserID:   userID,
 		Username: username,
 		Email:    email,
 		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)), // 24 hours
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(now.Add(AccessTokenDuration)),
+			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
 
@@ -54,10 +67,11 @@ func (jm *JWTManager) GenerateAccessToken(userID string, username, email, role s
 
 // GenerateRefreshToken generates JWT refresh token
 func (jm *JWTManager) GenerateRefreshToken(userID string) (string, error) {
+	now := time.Now()
 	claims := jwt.RegisteredClaims{
 		Subject:   userID,
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // 7 days
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(now.Add(RefreshTokenDuration)),
+		IssuedAt:  jwt.NewNumericDate(now),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -70,13 +84,13 @@ func (jm *JWTManager) GenerateRefreshToken(userID string) (string, error) {
 }
 
 // VerifyToken verifies JWT token
-func (jm *JWTManager) VerifyToken(tokenString string) (usecase.TokenClaims, error) {
+func (jm *JWTManager) VerifyToken(tokenString string) (TokenClaims, error) {
 	claims, err := jm.parseJWTClaims(tokenString)
 	if err != nil {
-		return usecase.TokenClaims{}, err
+		return TokenClaims{}, err
 	}
 
-	return usecase.TokenClaims{
+	return TokenClaims{
 		UserID:   claims.UserID,
 		Subject:  claims.Subject,
 		Username: claims.Username,

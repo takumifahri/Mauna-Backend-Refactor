@@ -761,7 +761,7 @@
           },
           "expires_in": {
             "type": "integer",
-            "example": 86400
+            "example": 900
           },
           "user": {
             "$ref": "#/components/schemas/UserDataResponse"

@@ -40,6 +40,12 @@ var availableRoutes = []Route{
 	{Path: "/api/profile", Method: "PATCH", Handler: "UpdateProfile"},
 	{Path: "/api/profile/password", Method: "PATCH", Handler: "ProfileChangePassword"},
 	{Path: "/api/profile", Method: "DELETE", Handler: "DeactivateAccount"},
+	{Path: "/api/admin/users", Method: "GET", Handler: "AdminListUsers"},
+	{Path: "/api/admin/users", Method: "POST", Handler: "AdminCreateUser"},
+	{Path: "/api/admin/users/{id}", Method: "GET", Handler: "AdminGetUser"},
+	{Path: "/api/admin/users/{id}", Method: "PATCH", Handler: "AdminUpdateUser"},
+	{Path: "/api/admin/users/{id}", Method: "DELETE", Handler: "AdminDeleteUser"},
+	{Path: "/api/admin/users/{id}/restore", Method: "PATCH", Handler: "AdminRestoreUser"},
 }
 
 // GetRoutes returns all available routes
@@ -65,18 +71,21 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	tokenBlacklistRepo := repository.NewTokenBlacklistRepository(db)
 	rateLimitRepo := repository.NewRateLimitRepository(db)
 	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db)
+	managementUsersRepo := repository.NewManagementUsersRepository(db)
 	passwordResetMailer := mailer.NewSMTPMailerFromEnv()
 	tokenManager := security.NewJWTManager()
 
 	// Initialize services
 	authService := service.NewAuthService(userRepo, tokenBlacklistRepo, passwordResetTokenRepo, passwordResetMailer, tokenManager)
 	profileService := service.NewProfileService(userRepo)
+	adminUsersService := service.NewManagementUsersService(managementUsersRepo)
 	rateLimiter := service.NewRateLimiterService(rateLimitRepo, time.Minute)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(rateLimiter)
 
 	// Register route groups (sekarang OK!)
 	routes.RegisterAuthRoutes(mux, authService, tokenManager, rateLimitMiddleware) // ← No conflict now!
 	routes.RegisterProfileRoutes(mux, profileService, tokenManager, rateLimitMiddleware)
+	routes.RegisterAdminUsersRoutes(mux, adminUsersService, tokenManager, rateLimitMiddleware)
 
 	// Public routes (health, root)
 	mux.HandleFunc("GET /swagger/", SwaggerUIHandler())
