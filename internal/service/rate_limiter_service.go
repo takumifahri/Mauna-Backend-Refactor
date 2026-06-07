@@ -2,35 +2,29 @@ package service
 
 import (
 	"context"
-	"sync"
+	"log/slog"
 	"time"
 
+	"REFACTORING_MAUNA/internal/domain"
 	"REFACTORING_MAUNA/internal/usecase"
 )
 
-type rateLimitEntry struct {
-	count     int
-	resetAt   time.Time
-	updatedAt time.Time
-}
-
 type rateLimiterService struct {
-	mu      sync.Mutex
-	entries map[string]rateLimitEntry
-	now     func() time.Time
+	rateLimitRepo domain.RateLimitRepository
+	now           func() time.Time
 }
 
 var _ usecase.RateLimiterUsecase = (*rateLimiterService)(nil)
 
-func NewRateLimiterService(cleanupInterval time.Duration) usecase.RateLimiterUsecase {
-	limiter := newRateLimiterService(cleanupInterval, time.Now)
+func NewRateLimiterService(rateLimitRepo domain.RateLimitRepository, cleanupInterval time.Duration) usecase.RateLimiterUsecase {
+	limiter := newRateLimiterService(rateLimitRepo, cleanupInterval, time.Now)
 	return limiter
 }
 
-func newRateLimiterService(cleanupInterval time.Duration, now func() time.Time) *rateLimiterService {
+func newRateLimiterService(rateLimitRepo domain.RateLimitRepository, cleanupInterval time.Duration, now func() time.Time) *rateLimiterService {
 	limiter := &rateLimiterService{
-		entries: make(map[string]rateLimitEntry),
-		now:     now,
+		rateLimitRepo: rateLimitRepo,
+		now:           now,
 	}
 
 	if cleanupInterval > 0 {
@@ -45,30 +39,17 @@ func (s *rateLimiterService) Allow(ctx context.Context, key string, policy useca
 		return usecase.RateLimitDecision{Allowed: true}, nil
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	now := s.now()
-	entry := s.entries[key]
-	if entry.resetAt.IsZero() || !now.Before(entry.resetAt) {
-		entry = rateLimitEntry{
-			count:     0,
-			resetAt:   now.Add(policy.Window),
-			updatedAt: now,
-		}
+	count, resetAt, err := s.rateLimitRepo.Increment(ctx, key, policy.Window)
+	if err != nil {
+		return usecase.RateLimitDecision{}, domain.NewInternalError(err)
 	}
-
-	entry.updatedAt = now
-	if entry.count >= policy.Limit {
-		s.entries[key] = entry
+	if count > policy.Limit {
 		return usecase.RateLimitDecision{
 			Allowed:    false,
-			RetryAfter: entry.resetAt.Sub(now),
+			RetryAfter: resetAt.Sub(s.now()),
 		}, nil
 	}
 
-	entry.count++
-	s.entries[key] = entry
 	return usecase.RateLimitDecision{Allowed: true}, nil
 }
 
@@ -82,13 +63,7 @@ func (s *rateLimiterService) cleanupLoop(interval time.Duration) {
 }
 
 func (s *rateLimiterService) cleanup() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	now := s.now()
-	for key, entry := range s.entries {
-		if now.After(entry.resetAt) && now.Sub(entry.updatedAt) > time.Minute {
-			delete(s.entries, key)
-		}
+	if err := s.rateLimitRepo.DeleteExpired(context.Background(), s.now().Add(-time.Minute)); err != nil {
+		slog.Warn("rate_limit_cleanup_failed", slog.Any("error", err))
 	}
 }

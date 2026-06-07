@@ -1,6 +1,6 @@
 CREATE TABLE inventory (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     shop_item_id BIGINT NOT NULL REFERENCES shop_items(id),
     quantity INTEGER NOT NULL DEFAULT 1,
     acquired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

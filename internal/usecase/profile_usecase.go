@@ -7,8 +7,8 @@ import (
 )
 
 type ProfileUsecase interface {
-	GetProfile(ctx context.Context, userID int64) (dto.ProfileResponse, error)
-	UpdateProfile(ctx context.Context, userID int64, req dto.UpdateProfileRequest) (dto.ProfileResponse, error)
-	ChangePassword(ctx context.Context, userID int64, req dto.ChangePasswordRequest) error
-	DeactivateAccount(ctx context.Context, userID int64) error
+	GetProfile(ctx context.Context, userID string) (dto.ProfileResponse, error)
+	UpdateProfile(ctx context.Context, userID string, req dto.UpdateProfileRequest) (dto.ProfileResponse, error)
+	ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error
+	DeactivateAccount(ctx context.Context, userID string) error
 }

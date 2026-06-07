@@ -1,7 +1,7 @@
 CREATE TABLE token_blacklist (
     id BIGSERIAL PRIMARY KEY,
     token VARCHAR(500) NOT NULL UNIQUE,
-    user_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
     revoked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
     reason VARCHAR(255)

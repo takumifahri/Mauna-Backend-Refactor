@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"REFACTORING_MAUNA/internal/domain/entities"
 )
@@ -9,10 +10,10 @@ import (
 // UserRepository interface untuk User operations
 type UserRepository interface {
 	// Create creates a new user
-	Create(ctx context.Context, user *entities.User) (int64, error)
+	Create(ctx context.Context, user *entities.User) (string, error)
 
 	// GetByID gets user by ID
-	GetByID(ctx context.Context, id int64) (*entities.User, error)
+	GetByID(ctx context.Context, id string) (*entities.User, error)
 
 	// GetByEmail gets user by email
 	GetByEmail(ctx context.Context, email string) (*entities.User, error)
@@ -33,10 +34,10 @@ type UserRepository interface {
 	UpdateProfile(ctx context.Context, user *entities.User) error
 
 	// Deactivate deactivates user account
-	Deactivate(ctx context.Context, id int64) error
+	Deactivate(ctx context.Context, id string) error
 
 	// Delete deletes user (soft delete)
-	Delete(ctx context.Context, unique_id string) error
+	Delete(ctx context.Context, id string) error
 
 	// CheckEmailExists checks if email exists
 	CheckEmailExists(ctx context.Context, email string) (bool, error)
@@ -87,7 +88,26 @@ type QuestionRepository interface {
 // ProgressRepository interface untuk Progress operations
 type ProgressRepository interface {
 	Create(ctx context.Context, progress *entities.Progress) (int64, error)
-	GetByUserID(ctx context.Context, userID int64) (*entities.Progress, error)
+	GetByUserID(ctx context.Context, userID string) (*entities.Progress, error)
 	Update(ctx context.Context, progress *entities.Progress) error
 	Delete(ctx context.Context, id int64) error
+}
+
+type TokenBlacklistRepository interface {
+	Create(ctx context.Context, token *entities.TokenBlacklist) error
+	Exists(ctx context.Context, token string) (bool, error)
+	DeleteExpired(ctx context.Context, before time.Time) error
+}
+
+type RateLimitRepository interface {
+	Increment(ctx context.Context, key string, window time.Duration) (int, time.Time, error)
+	DeleteExpired(ctx context.Context, before time.Time) error
+}
+
+type PasswordResetTokenRepository interface {
+	Create(ctx context.Context, token *entities.PasswordResetToken) error
+	GetValidByHash(ctx context.Context, tokenHash string) (*entities.PasswordResetToken, error)
+	MarkUsed(ctx context.Context, id int64) error
+	DeleteActiveByUserID(ctx context.Context, userID string) error
+	DeleteExpired(ctx context.Context, before time.Time) error
 }

@@ -8,6 +8,7 @@ import (
 
 	"REFACTORING_MAUNA/internal/domain"
 	"REFACTORING_MAUNA/internal/dto"
+	"REFACTORING_MAUNA/pkg/validation"
 )
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +20,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var req dto.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logRequestError(r, "register_decode_failed", http.StatusBadRequest, err)
+		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
+		return
+	}
+	if err := validation.Validate(req); err != nil {
+		logRequestError(r, "register_validation_failed", http.StatusBadRequest, err)
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}

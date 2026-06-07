@@ -102,7 +102,7 @@ func (s *UserSeeder) Run() error {
 	createdCount := 0
 	for _, user := range usersData {
 		// Check if user already exists by email or username
-		var existingID sql.NullInt64
+		var existingID sql.NullString
 		err := tx.QueryRow(
 			"SELECT id FROM users WHERE email = $1 OR username = $2",
 			user.Email,
@@ -126,15 +126,15 @@ func (s *UserSeeder) Run() error {
 			return err
 		}
 
-		uniqueID := uuid.NewString()
+		userID := uuid.NewString()
 
 		// Insert user
 		_, err = tx.Exec(
 			`INSERT INTO users (
-                unique_id, username, email, password, nama, telpon, role, 
+                id, username, email, password, nama, telpon, role, 
                 is_active, is_verified, bio, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-			uniqueID,
+			userID,
 			user.Username,
 			user.Email,
 			hashedPassword,
@@ -152,7 +152,7 @@ func (s *UserSeeder) Run() error {
 			return err
 		}
 
-		PrintSuccess(fmt.Sprintf("Created user: %s (%s) - ID: %s", user.Username, user.Email, uniqueID))
+		PrintSuccess(fmt.Sprintf("Created user: %s (%s) - ID: %s", user.Username, user.Email, userID))
 		createdCount++
 	}
 

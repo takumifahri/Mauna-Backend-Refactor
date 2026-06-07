@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 DO $$
 BEGIN
     CREATE TYPE user_role AS ENUM ('admin', 'user', 'moderator');
@@ -17,8 +19,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    unique_id VARCHAR(50) UNIQUE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -48,7 +49,6 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_unique_id ON users(unique_id);
 
 CREATE TABLE kamus (
     id BIGSERIAL PRIMARY KEY,

@@ -3,8 +3,7 @@ package dto
 import "time"
 
 type ProfileResponse struct {
-	ID                    int64      `json:"id"`
-	UniqueID              string     `json:"unique_id"`
+	ID                    string     `json:"id"`
 	Username              string     `json:"username"`
 	Email                 string     `json:"email"`
 	Name                  string     `json:"name"`

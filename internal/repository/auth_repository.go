@@ -17,14 +17,13 @@ func NewUserRepository(db *database.DB) domain.UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *entities.User) (int64, error) {
-	query := `INSERT INTO users (unique_id, username, email, password, nama, role, is_active, is_verified, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+func (r *userRepository) Create(ctx context.Context, user *entities.User) (string, error) {
+	query := `INSERT INTO users (username, email, password, nama, role, is_active, is_verified, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
              RETURNING id`
 
-	var id int64
+	var id string
 	err := r.db.QueryRowContext(ctx, query,
-		user.UniqueID,
 		user.Username,
 		user.Email,
 		user.PasswordHash, // ← ADD THIS (missing!)
@@ -36,8 +35,8 @@ func (r *userRepository) Create(ctx context.Context, user *entities.User) (int64
 	return id, err
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+func (r *userRepository) GetByID(ctx context.Context, id string) (*entities.User, error) {
+	query := `SELECT id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
              avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
              streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
              created_at, updated_at, deleted_at, last_login
@@ -52,7 +51,7 @@ func (r *userRepository) GetByID(ctx context.Context, id int64) (*entities.User,
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+	query := `SELECT id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
              avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
              streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
              created_at, updated_at, deleted_at, last_login
@@ -67,7 +66,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entitie
 }
 
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+	query := `SELECT id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
              avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
              streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
              created_at, updated_at, deleted_at, last_login
@@ -82,7 +81,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*e
 }
 
 func (r *userRepository) GetByEmailOrUsername(ctx context.Context, emailOrUsername string) (*entities.User, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
+	query := `SELECT id, username, email, password AS password_hash, nama, telpon, role, is_active, is_verified,
              avatar, bio, total_badges, avatar_url, current_streak, longest_streak, last_activity_date,
              streak_freeze_count, weekly_xp, tier, total_xp, total_quizzes_completed, total_points,
              created_at, updated_at, deleted_at, last_login
@@ -171,7 +170,7 @@ func (r *userRepository) UpdateProfile(ctx context.Context, user *entities.User)
 	return nil
 }
 
-func (r *userRepository) Deactivate(ctx context.Context, id int64) error {
+func (r *userRepository) Deactivate(ctx context.Context, id string) error {
 	query := `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
 
 	result, err := r.db.ExecContext(ctx, query, id)
@@ -190,10 +189,10 @@ func (r *userRepository) Deactivate(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *userRepository) Delete(ctx context.Context, unique_id string) error {
-	query := `UPDATE users SET deleted_at = NOW() WHERE unique_id = $1`
+func (r *userRepository) Delete(ctx context.Context, id string) error {
+	query := `UPDATE users SET deleted_at = NOW() WHERE id = $1`
 
-	result, err := r.db.ExecContext(ctx, query, unique_id)
+	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}
@@ -211,7 +210,7 @@ func (r *userRepository) Delete(ctx context.Context, unique_id string) error {
 }
 
 func (r *userRepository) GetAll(ctx context.Context, limit int, offset int) ([]entities.User, int64, error) {
-	query := `SELECT id, unique_id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
+	query := `SELECT id, username, email, password AS password_hash, nama, role, is_active, is_verified, created_at, updated_at
              FROM users WHERE deleted_at IS NULL
              ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 

@@ -11,7 +11,7 @@ import (
 )
 
 type JWTClaims struct {
-	UserID   int64  `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Role     string `json:"role"`
@@ -31,7 +31,7 @@ func NewJWTManager() *JWTManager {
 }
 
 // GenerateToken generates JWT access token
-func (jm *JWTManager) GenerateAccessToken(userID int64, username, email, role string) (string, error) {
+func (jm *JWTManager) GenerateAccessToken(userID string, username, email, role string) (string, error) {
 	claims := JWTClaims{
 		UserID:   userID,
 		Username: username,
@@ -53,9 +53,9 @@ func (jm *JWTManager) GenerateAccessToken(userID int64, username, email, role st
 }
 
 // GenerateRefreshToken generates JWT refresh token
-func (jm *JWTManager) GenerateRefreshToken(userID int64) (string, error) {
+func (jm *JWTManager) GenerateRefreshToken(userID string) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Subject:   fmt.Sprintf("%d", userID),
+		Subject:   userID,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // 7 days
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 	}
@@ -90,6 +90,9 @@ func (jm *JWTManager) GetTokenExpiry(tokenString string) (time.Time, error) {
 	claims, err := jm.parseJWTClaims(tokenString)
 	if err != nil {
 		return time.Time{}, err
+	}
+	if claims.ExpiresAt == nil {
+		return time.Time{}, fmt.Errorf("token has no expiry")
 	}
 
 	return claims.ExpiresAt.Time, nil

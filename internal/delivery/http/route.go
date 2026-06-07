@@ -10,6 +10,7 @@ import (
 	"REFACTORING_MAUNA/internal/repository"
 	"REFACTORING_MAUNA/internal/service"
 	"REFACTORING_MAUNA/pkg/database"
+	"REFACTORING_MAUNA/pkg/mailer"
 	"REFACTORING_MAUNA/pkg/security"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -30,12 +31,14 @@ var availableRoutes = []Route{
 	{Path: "/metrics", Method: "GET", Handler: "PrometheusMetrics"},
 	{Path: "/api/auth/login", Method: "POST", Handler: "Login"},
 	{Path: "/api/auth/register", Method: "POST", Handler: "Register"},
+	{Path: "/api/auth/forgot-password", Method: "POST", Handler: "ForgotPassword"},
+	{Path: "/api/auth/reset-password", Method: "POST", Handler: "ResetPassword"},
 	{Path: "/api/auth/change-password", Method: "POST", Handler: "ChangePassword"},
 	{Path: "/api/auth/logout", Method: "POST", Handler: "Logout"},
 	{Path: "/api/auth/refresh-token", Method: "POST", Handler: "RefreshToken"},
 	{Path: "/api/profile", Method: "GET", Handler: "GetProfile"},
 	{Path: "/api/profile", Method: "PATCH", Handler: "UpdateProfile"},
-	{Path: "/api/profile/password", Method: "PUT", Handler: "ProfileChangePassword"},
+	{Path: "/api/profile/password", Method: "PATCH", Handler: "ProfileChangePassword"},
 	{Path: "/api/profile", Method: "DELETE", Handler: "DeactivateAccount"},
 }
 
@@ -59,12 +62,16 @@ func PrintRoutes() {
 func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(db)
+	tokenBlacklistRepo := repository.NewTokenBlacklistRepository(db)
+	rateLimitRepo := repository.NewRateLimitRepository(db)
+	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db)
+	passwordResetMailer := mailer.NewSMTPMailerFromEnv()
 	tokenManager := security.NewJWTManager()
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, tokenManager)
+	authService := service.NewAuthService(userRepo, tokenBlacklistRepo, passwordResetTokenRepo, passwordResetMailer, tokenManager)
 	profileService := service.NewProfileService(userRepo)
-	rateLimiter := service.NewRateLimiterService(time.Minute)
+	rateLimiter := service.NewRateLimiterService(rateLimitRepo, time.Minute)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(rateLimiter)
 
 	// Register route groups (sekarang OK!)

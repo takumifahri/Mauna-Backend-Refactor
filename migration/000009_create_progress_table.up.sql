@@ -7,7 +7,7 @@ END $$;
 
 CREATE TABLE progress (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     sublevel_id BIGINT NOT NULL REFERENCES sublevel(id) ON DELETE CASCADE,
     status progress_status NOT NULL DEFAULT 'not_started',
     total_questions INTEGER NOT NULL DEFAULT 0,

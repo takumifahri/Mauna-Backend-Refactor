@@ -11,21 +11,20 @@ import (
 	"REFACTORING_MAUNA/pkg/validation"
 )
 
-// ← Handler method (HTTP layer)
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req dto.LoginRequest
+	var req dto.ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logRequestError(r, "login_decode_failed", http.StatusBadRequest, err)
+		logRequestError(r, "reset_password_decode_failed", http.StatusBadRequest, err)
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}
 	if err := validation.Validate(req); err != nil {
-		logRequestError(r, "login_validation_failed", http.StatusBadRequest, err)
+		logRequestError(r, "reset_password_validation_failed", http.StatusBadRequest, err)
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}
@@ -33,23 +32,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	// ← Call service (business logic)
-	resp, err := h.authService.Login(ctx, req)
-	if err != nil {
+	if err := h.authService.ResetPassword(ctx, req); err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		logRequestError(r, "login_failed", statusCode, err)
+		logRequestError(r, "reset_password_failed", statusCode, err)
 		writeErrorResponse(w, statusCode, err)
 		return
 	}
-
-	setAuthCookies(w, resp.AccessToken, resp.RefreshToken)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response{
 		Status:    "success",
-		Message:   "Login successful",
-		Data:      resp,
+		Message:   "Password reset successfully",
 		Timestamp: time.Now().Format(time.RFC3339),
 	})
 }

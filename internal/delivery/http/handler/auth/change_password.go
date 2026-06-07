@@ -10,6 +10,7 @@ import (
 	"REFACTORING_MAUNA/internal/delivery/http/middleware"
 	"REFACTORING_MAUNA/internal/domain"
 	"REFACTORING_MAUNA/internal/dto"
+	"REFACTORING_MAUNA/pkg/validation"
 )
 
 func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +32,11 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}
+	if err := validation.Validate(req); err != nil {
+		logRequestError(r, "change_password_validation_failed", http.StatusBadRequest, err)
+		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
@@ -38,7 +44,7 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	err := h.authService.ChangePassword(ctx, claims.UserID, req)
 	if err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		logRequestError(r, "change_password_failed", statusCode, err, slog.Int64("user_id", claims.UserID))
+		logRequestError(r, "change_password_failed", statusCode, err, slog.String("user_id", claims.UserID))
 		writeErrorResponse(w, statusCode, err)
 		return
 	}

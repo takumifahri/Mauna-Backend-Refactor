@@ -25,10 +25,10 @@ func NewProfileService(userRepo domain.UserRepository) usecase.ProfileUsecase {
 	}
 }
 
-func (s *profileService) GetProfile(ctx context.Context, userID int64) (dto.ProfileResponse, error) {
+func (s *profileService) GetProfile(ctx context.Context, userID string) (dto.ProfileResponse, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.WarnContext(ctx, "profile_get_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.WarnContext(ctx, "profile_get_user_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return dto.ProfileResponse{}, domain.ErrUserNotFound
 	}
 
@@ -39,10 +39,10 @@ func (s *profileService) GetProfile(ctx context.Context, userID int64) (dto.Prof
 	return profileResponseFromUser(user), nil
 }
 
-func (s *profileService) UpdateProfile(ctx context.Context, userID int64, req dto.UpdateProfileRequest) (dto.ProfileResponse, error) {
+func (s *profileService) UpdateProfile(ctx context.Context, userID string, req dto.UpdateProfileRequest) (dto.ProfileResponse, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.WarnContext(ctx, "profile_update_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.WarnContext(ctx, "profile_update_user_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return dto.ProfileResponse{}, domain.ErrUserNotFound
 	}
 
@@ -101,23 +101,23 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID int64, req dt
 	}
 
 	if err := s.userRepo.UpdateProfile(ctx, user); err != nil {
-		slog.ErrorContext(ctx, "profile_update_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.ErrorContext(ctx, "profile_update_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return dto.ProfileResponse{}, domain.NewInternalError(err)
 	}
 
 	updatedUser, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.ErrorContext(ctx, "profile_update_get_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.ErrorContext(ctx, "profile_update_get_user_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return dto.ProfileResponse{}, domain.NewInternalError(err)
 	}
 
 	return profileResponseFromUser(updatedUser), nil
 }
 
-func (s *profileService) DeactivateAccount(ctx context.Context, userID int64) error {
+func (s *profileService) DeactivateAccount(ctx context.Context, userID string) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.WarnContext(ctx, "profile_deactivate_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.WarnContext(ctx, "profile_deactivate_user_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return domain.ErrUserNotFound
 	}
 	if !user.IsActive {
@@ -125,17 +125,17 @@ func (s *profileService) DeactivateAccount(ctx context.Context, userID int64) er
 	}
 
 	if err := s.userRepo.Deactivate(ctx, userID); err != nil {
-		slog.ErrorContext(ctx, "profile_deactivate_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.ErrorContext(ctx, "profile_deactivate_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return domain.NewInternalError(err)
 	}
 
 	return nil
 }
 
-func (s *profileService) ChangePassword(ctx context.Context, userID int64, req dto.ChangePasswordRequest) error {
+func (s *profileService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.WarnContext(ctx, "profile_change_password_user_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.WarnContext(ctx, "profile_change_password_user_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return domain.ErrUserNotFound
 	}
 
@@ -153,13 +153,13 @@ func (s *profileService) ChangePassword(ctx context.Context, userID int64, req d
 
 	hashedPassword, err := security.HashPassword(req.NewPassword)
 	if err != nil {
-		slog.ErrorContext(ctx, "profile_change_password_hash_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.ErrorContext(ctx, "profile_change_password_hash_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return domain.NewInternalError(err)
 	}
 
 	user.PasswordHash = hashedPassword
 	if err := s.userRepo.Update(ctx, user); err != nil {
-		slog.ErrorContext(ctx, "profile_change_password_update_failed", slog.Any("error", err), slog.Int64("user_id", userID))
+		slog.ErrorContext(ctx, "profile_change_password_update_failed", slog.Any("error", err), slog.String("user_id", userID))
 		return domain.NewInternalError(err)
 	}
 
@@ -169,7 +169,6 @@ func (s *profileService) ChangePassword(ctx context.Context, userID int64, req d
 func profileResponseFromUser(user *entities.User) dto.ProfileResponse {
 	return dto.ProfileResponse{
 		ID:                    user.ID,
-		UniqueID:              user.UniqueID,
 		Username:              user.Username,
 		Email:                 user.Email,
 		Name:                  stringValue(user.Nama),

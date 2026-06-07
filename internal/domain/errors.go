@@ -11,6 +11,7 @@ var (
 	ErrUserAlreadyExists  = fmt.Errorf("user already exists")
 	ErrInvalidCredentials = fmt.Errorf("invalid email/username or password")
 	ErrInvalidEmail       = fmt.Errorf("invalid email format")
+	ErrInvalidResetToken  = fmt.Errorf("invalid or expired reset token")
 	ErrPasswordTooShort   = fmt.Errorf("password must be at least 6 characters")
 	ErrInvalidRequest     = fmt.Errorf("invalid request")
 	ErrUnauthorized       = fmt.Errorf("unauthorized")
@@ -100,7 +101,7 @@ func ErrorToStatusCode(err error) int {
 	switch err {
 	case ErrUserNotFound, ErrBadgeNotFound, ErrDictionaryNotFound:
 		return 404
-	case ErrInvalidRequest, ErrInvalidEmail, ErrPasswordTooShort:
+	case ErrInvalidRequest, ErrInvalidEmail, ErrInvalidResetToken, ErrPasswordTooShort:
 		return 400
 	case ErrInvalidCredentials:
 		return 401

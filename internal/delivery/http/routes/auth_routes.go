@@ -16,6 +16,8 @@ func RegisterAuthRoutes(mux *http.ServeMux, authService usecase.AuthUsecase, tok
 	// Auth endpoints
 	mux.Handle("POST /api/auth/login", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 5, Window: time.Minute}, http.HandlerFunc(authHandler.Login)))
 	mux.Handle("POST /api/auth/register", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 3, Window: time.Minute}, http.HandlerFunc(authHandler.Register)))
+	mux.Handle("POST /api/auth/forgot-password", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 3, Window: 15 * time.Minute}, http.HandlerFunc(authHandler.ForgotPassword)))
+	mux.Handle("POST /api/auth/reset-password", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 5, Window: time.Minute}, http.HandlerFunc(authHandler.ResetPassword)))
 	mux.Handle("POST /api/auth/change-password", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 5, Window: time.Minute}, middleware.JWTAuth(tokenManager, http.HandlerFunc(authHandler.ChangePassword))))
 	mux.Handle("POST /api/auth/logout", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 20, Window: time.Minute}, http.HandlerFunc(authHandler.Logout)))
 	mux.Handle("POST /api/auth/refresh-token", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 10, Window: time.Minute}, http.HandlerFunc(authHandler.RefreshToken)))
