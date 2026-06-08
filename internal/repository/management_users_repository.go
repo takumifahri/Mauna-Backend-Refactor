@@ -31,7 +31,7 @@ func (r *managementUsersRepository) List(ctx context.Context, filter admin.Manag
 	}
 
 	query := fmt.Sprintf(`SELECT id::text, username, email, COALESCE(nama, '') AS name, COALESCE(telpon, '') AS phone,
-		role::text, is_active, is_verified, total_badges, total_xp, total_quizzes_completed, total_points,
+		role::text, COALESCE(avatar, '') AS avatar, COALESCE(avatar_url, '') AS avatar_url, is_active, is_verified, total_badges, total_xp, total_quizzes_completed, total_points,
 		created_at, updated_at, last_login, deleted_at
 		FROM users %s ORDER BY %s %s LIMIT $%d OFFSET $%d`, where, orderBy, sortOrder, len(args)+1, len(args)+2)
 	args = append(args, filter.Limit, filter.Offset)
@@ -60,7 +60,7 @@ func (r *managementUsersRepository) List(ctx context.Context, filter admin.Manag
 
 func (r *managementUsersRepository) GetByID(ctx context.Context, id string, includeDeleted bool) (admin.ManagementUserResponse, error) {
 	query := `SELECT id::text, username, email, COALESCE(nama, '') AS name, COALESCE(telpon, '') AS phone,
-		role::text, is_active, is_verified, total_badges, total_xp, total_quizzes_completed, total_points,
+		role::text, COALESCE(avatar, '') AS avatar, COALESCE(avatar_url, '') AS avatar_url, is_active, is_verified, total_badges, total_xp, total_quizzes_completed, total_points,
 		created_at, updated_at, last_login, deleted_at
 		FROM users WHERE id = $1`
 	if !includeDeleted {
@@ -78,12 +78,12 @@ func (r *managementUsersRepository) GetByID(ctx context.Context, id string, incl
 }
 
 func (r *managementUsersRepository) Create(ctx context.Context, req admin.CreateManagementUserRequest) (string, error) {
-	query := `INSERT INTO users (username, email, password, nama, telpon, role, is_active, is_verified, created_at, updated_at)
-		VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6::user_role, $7, $8, NOW(), NOW())
+	query := `INSERT INTO users (username, email, password, nama, telpon, role, avatar, avatar_url, is_active, is_verified, created_at, updated_at)
+		VALUES ($1, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6::user_role, NULLIF($7, ''), NULLIF($8, ''), $9, $10, NOW(), NOW())
 		RETURNING id::text`
 
 	var id string
-	if err := r.db.QueryRowContext(ctx, query, req.Username, req.Email, req.Password, req.Name, req.Phone, req.Role, boolValue(req.IsActive, true), boolValue(req.IsVerified, false)).Scan(&id); err != nil {
+	if err := r.db.QueryRowContext(ctx, query, req.Username, req.Email, req.Password, req.Name, req.Phone, req.Role, req.Avatar, req.AvatarURL, boolValue(req.IsActive, false), boolValue(req.IsVerified, false)).Scan(&id); err != nil {
 		return "", mapManagementUsersSQLError(err)
 	}
 	return id, nil
@@ -108,6 +108,14 @@ func (r *managementUsersRepository) Update(ctx context.Context, id string, req a
 	}
 	if req.Name != nil {
 		add("nama", *req.Name)
+	}
+	if req.Avatar != nil {
+		avatar := strings.TrimSpace(*req.Avatar)
+		add("avatar", sql.NullString{String: avatar, Valid: avatar != ""})
+	}
+	if req.AvatarURL != nil {
+		avatarURL := strings.TrimSpace(*req.AvatarURL)
+		add("avatar_url", sql.NullString{String: avatarURL, Valid: avatarURL != ""})
 	}
 	if req.Phone != nil {
 		phone := strings.TrimSpace(*req.Phone)
@@ -188,6 +196,23 @@ func buildManagementUsersWhere(filter admin.ManagementUsersFilter, startIndex in
 		value := "%" + strings.ToLower(strings.TrimSpace(filter.Query)) + "%"
 		placeholder := next(value)
 		conditions = append(conditions, fmt.Sprintf("(LOWER(username) LIKE %s OR LOWER(email) LIKE %s OR LOWER(COALESCE(nama, '')) LIKE %s)", placeholder, placeholder, placeholder))
+	}
+	if strings.TrimSpace(filter.ID) != "" {
+		conditions = append(conditions, "id::text = "+next(strings.TrimSpace(filter.ID)))
+	}
+	if strings.TrimSpace(filter.Username) != "" {
+		conditions = append(conditions, "LOWER(username) = LOWER("+next(strings.TrimSpace(filter.Username))+")")
+	}
+	if strings.TrimSpace(filter.Email) != "" {
+		conditions = append(conditions, "LOWER(email) = LOWER("+next(strings.TrimSpace(filter.Email))+")")
+	}
+	if strings.TrimSpace(filter.Name) != "" {
+		value := "%" + strings.ToLower(strings.TrimSpace(filter.Name)) + "%"
+		conditions = append(conditions, "LOWER(COALESCE(nama, '')) LIKE "+next(value))
+	}
+	if strings.TrimSpace(filter.Phone) != "" {
+		value := "%" + strings.TrimSpace(filter.Phone) + "%"
+		conditions = append(conditions, "COALESCE(telpon, '') LIKE "+next(value))
 	}
 	if strings.TrimSpace(filter.Role) != "" {
 		conditions = append(conditions, "role::text = "+next(strings.TrimSpace(filter.Role)))

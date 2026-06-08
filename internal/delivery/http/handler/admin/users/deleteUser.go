@@ -14,14 +14,20 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	var err error
-	if boolQuery(r.URL.Query().Get("hard")) {
-		err = h.userService.HardDeleteUser(ctx, r.PathValue("id"))
-	} else {
-		err = h.userService.SoftDeleteUser(ctx, r.PathValue("id"))
-	}
+	id, err := userIDFromPath(r)
 	if err != nil {
 		writeAdminError(w, err)
+		return
+	}
+
+	var deleteErr error
+	if boolQuery(r.URL.Query().Get("hard")) {
+		deleteErr = h.userService.HardDeleteUser(ctx, id)
+	} else {
+		deleteErr = h.userService.SoftDeleteUser(ctx, id)
+	}
+	if deleteErr != nil {
+		writeAdminError(w, deleteErr)
 		return
 	}
 	writeAdminJSON(w, http.StatusOK, "User deleted successfully", nil)

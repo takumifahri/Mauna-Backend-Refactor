@@ -19,6 +19,11 @@ func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	filter := admindto.ManagementUsersFilter{
 		Query:          strings.TrimSpace(r.URL.Query().Get("q")),
+		ID:             strings.TrimSpace(r.URL.Query().Get("id")),
+		Username:       strings.TrimSpace(r.URL.Query().Get("username")),
+		Email:          strings.TrimSpace(r.URL.Query().Get("email")),
+		Name:           strings.TrimSpace(r.URL.Query().Get("name")),
+		Phone:          strings.TrimSpace(r.URL.Query().Get("phone")),
 		Role:           strings.TrimSpace(r.URL.Query().Get("role")),
 		IsActive:       optionalBool(r.URL.Query().Get("is_active")),
 		IsVerified:     optionalBool(r.URL.Query().Get("is_verified")),

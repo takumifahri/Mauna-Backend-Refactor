@@ -38,12 +38,14 @@ var availableRoutes = []Route{
 	{Path: "/api/auth/refresh-token", Method: "POST", Handler: "RefreshToken"},
 	{Path: "/api/profile", Method: "GET", Handler: "GetProfile"},
 	{Path: "/api/profile", Method: "PATCH", Handler: "UpdateProfile"},
+	{Path: "/api/profile/avatar", Method: "POST", Handler: "UploadAvatar"},
 	{Path: "/api/profile/password", Method: "PATCH", Handler: "ProfileChangePassword"},
 	{Path: "/api/profile", Method: "DELETE", Handler: "DeactivateAccount"},
 	{Path: "/api/admin/users", Method: "GET", Handler: "AdminListUsers"},
 	{Path: "/api/admin/users", Method: "POST", Handler: "AdminCreateUser"},
 	{Path: "/api/admin/users/{id}", Method: "GET", Handler: "AdminGetUser"},
 	{Path: "/api/admin/users/{id}", Method: "PATCH", Handler: "AdminUpdateUser"},
+	{Path: "/api/admin/users/{id}/soft-delete", Method: "PATCH", Handler: "AdminSoftDeleteUser"},
 	{Path: "/api/admin/users/{id}", Method: "DELETE", Handler: "AdminDeleteUser"},
 	{Path: "/api/admin/users/{id}/restore", Method: "PATCH", Handler: "AdminRestoreUser"},
 }
@@ -92,5 +94,6 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	mux.HandleFunc("GET /swagger/openapi.json", SwaggerSpecHandler())
 	mux.HandleFunc("GET /health", HealthHandler(db))
 	mux.Handle("GET /metrics", promhttp.Handler())
+	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir("uploads"))))
 	mux.HandleFunc("GET /", RootHandler())
 }

@@ -25,6 +25,7 @@ go.sum
 dist/
 build/
 tmp/
+uploads/
 *.log
 
 # Database

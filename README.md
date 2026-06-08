@@ -278,7 +278,7 @@ Gunakan perintah `make` untuk mempercepat alur kerja DevOps di terminal Arch Lin
 
 ## 🛡️ Keamanan (Security Focus)
 Sesuai dengan spesifikasi sistem, keamanan diimplementasikan pada beberapa lapisan:
-* **Password Hashing**: Menggunakan `bcrypt` untuk enkripsi satu arah pada kredensial user.
+* **Password Hashing**: Menggunakan `argon2` untuk enkripsi satu arah pada kredensial user.
 * **SQL Injection Protection**: Memanfaatkan *parameterized queries* bawaan `sqlx` (menggunakan placeholder `$1, $2`).
 * **JWT Authentication**: Proteksi rute API menggunakan *middleware* untuk memastikan akses hanya diberikan kepada user yang valid.
 * **Environment Protection**: Data sensitif seperti kredensial database disimpan dalam file `.env` (di-ignore oleh Git).

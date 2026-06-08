@@ -34,6 +34,9 @@ type UserRepository interface {
 	// UpdateProfile updates editable profile fields
 	UpdateProfile(ctx context.Context, user *entities.User) error
 
+	// UpdateAvatar updates avatar file metadata
+	UpdateAvatar(ctx context.Context, id string, avatar string, avatarURL string) error
+
 	// Deactivate deactivates user account
 	Deactivate(ctx context.Context, id string) error
 

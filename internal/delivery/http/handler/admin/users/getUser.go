@@ -14,7 +14,13 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.userService.GetUser(ctx, r.PathValue("id"))
+	id, err := userIDFromPath(r)
+	if err != nil {
+		writeAdminError(w, err)
+		return
+	}
+
+	resp, err := h.userService.GetUser(ctx, id)
 	if err != nil {
 		writeAdminError(w, err)
 		return

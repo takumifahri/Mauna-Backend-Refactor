@@ -38,6 +38,7 @@ func (s *managementUsersService) CreateUser(ctx context.Context, req admin.Creat
 	if role == "" {
 		role = "user"
 	}
+	role = strings.ToLower(role)
 
 	if err := validateManagementUserInput(username, email, req.Password, name, role); err != nil {
 		return admin.ManagementUserResponse{}, err
@@ -48,7 +49,7 @@ func (s *managementUsersService) CreateUser(ctx context.Context, req admin.Creat
 		return admin.ManagementUserResponse{}, domain.NewInternalError(err)
 	}
 
-	isActive := true
+	isActive := false
 	if req.IsActive != nil {
 		isActive = *req.IsActive
 	}
@@ -64,6 +65,8 @@ func (s *managementUsersService) CreateUser(ctx context.Context, req admin.Creat
 		Name:       name,
 		Phone:      phone,
 		Role:       role,
+		Avatar:     strings.TrimSpace(req.Avatar),
+		AvatarURL:  strings.TrimSpace(req.AvatarURL),
 		IsActive:   &isActive,
 		IsVerified: &isVerified,
 	}
@@ -96,14 +99,18 @@ func (s *managementUsersService) UpdateUser(ctx context.Context, id string, req 
 	}
 	if req.Password != nil {
 		password := strings.TrimSpace(*req.Password)
-		if len(password) < 6 {
-			return admin.ManagementUserResponse{}, domain.ErrPasswordTooShort
+		if password == "" {
+			req.Password = nil
+		} else {
+			if len(password) < 6 {
+				return admin.ManagementUserResponse{}, domain.ErrPasswordTooShort
+			}
+			passwordHash, err := security.HashPassword(password)
+			if err != nil {
+				return admin.ManagementUserResponse{}, domain.NewInternalError(err)
+			}
+			req.Password = &passwordHash
 		}
-		passwordHash, err := security.HashPassword(password)
-		if err != nil {
-			return admin.ManagementUserResponse{}, domain.NewInternalError(err)
-		}
-		req.Password = &passwordHash
 	}
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
@@ -116,8 +123,17 @@ func (s *managementUsersService) UpdateUser(ctx context.Context, id string, req 
 		phone := strings.TrimSpace(*req.Phone)
 		req.Phone = &phone
 	}
+	if req.Avatar != nil {
+		avatar := strings.TrimSpace(*req.Avatar)
+		req.Avatar = &avatar
+	}
+	if req.AvatarURL != nil {
+		avatarURL := strings.TrimSpace(*req.AvatarURL)
+		req.AvatarURL = &avatarURL
+	}
+
 	if req.Role != nil {
-		role := strings.TrimSpace(*req.Role)
+		role := strings.ToLower(strings.TrimSpace(*req.Role))
 		if !isValidManagementUserRole(role) {
 			return admin.ManagementUserResponse{}, domain.NewBusinessError("INVALID_ROLE", "role must be admin, user, or moderator", domain.ErrInvalidRequest)
 		}

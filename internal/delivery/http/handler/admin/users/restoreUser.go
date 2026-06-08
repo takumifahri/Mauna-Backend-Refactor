@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (h *Handler) SoftDeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RestoreUser(w http.ResponseWriter, r *http.Request) {
 	if !h.requireAdmin(w, r) {
 		return
 	}
@@ -20,10 +20,10 @@ func (h *Handler) SoftDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.userService.SoftDeleteUser(ctx, id)
+	resp, err := h.userService.RestoreUser(ctx, id)
 	if err != nil {
 		writeAdminError(w, err)
 		return
 	}
-	writeAdminJSON(w, http.StatusOK, "User soft-deleted successfully", nil)
+	writeAdminJSON(w, http.StatusOK, "User restored successfully", resp)
 }

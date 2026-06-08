@@ -152,7 +152,7 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		PasswordHash: hashedPassword,
 		Nama:         &name,             // Use pointer
 		Role:         constant.RoleUser, // Use constant
-		IsActive:     true,
+		IsActive:     false,
 		IsVerified:   false,
 	}
 

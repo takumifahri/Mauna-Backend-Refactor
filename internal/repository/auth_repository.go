@@ -170,6 +170,26 @@ func (r *userRepository) UpdateProfile(ctx context.Context, user *entities.User)
 	return nil
 }
 
+func (r *userRepository) UpdateAvatar(ctx context.Context, id string, avatar string, avatarURL string) error {
+	query := `UPDATE users SET avatar = $1, avatar_url = $2, updated_at = NOW()
+             WHERE id = $3 AND deleted_at IS NULL`
+
+	result, err := r.db.ExecContext(ctx, query, avatar, avatarURL, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return domain.ErrUserNotFound
+	}
+
+	return nil
+}
+
 func (r *userRepository) Deactivate(ctx context.Context, id string) error {
 	query := `UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`
 

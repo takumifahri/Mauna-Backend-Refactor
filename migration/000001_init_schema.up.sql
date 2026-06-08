@@ -26,7 +26,7 @@ CREATE TABLE users (
     nama VARCHAR(255),
     telpon VARCHAR(255),
     role user_role NOT NULL DEFAULT 'user',
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     avatar VARCHAR(255),
     bio TEXT,

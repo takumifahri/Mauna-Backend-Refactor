@@ -14,6 +14,7 @@ func RegisterProfileRoutes(mux *http.ServeMux, profileService usecase.ProfileUse
 
 	mux.Handle("GET /api/profile", middleware.JWTAuth(tokenManager, http.HandlerFunc(profileHandler.GetProfile)))
 	mux.Handle("PATCH /api/profile", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 10, Window: time.Minute}, middleware.JWTAuth(tokenManager, http.HandlerFunc(profileHandler.UpdateProfile))))
+	mux.Handle("POST /api/profile/avatar", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 10, Window: time.Minute}, middleware.JWTAuth(tokenManager, http.HandlerFunc(profileHandler.UploadAvatar))))
 	mux.Handle("PATCH /api/profile/password", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 5, Window: time.Minute}, middleware.JWTAuth(tokenManager, http.HandlerFunc(profileHandler.ChangePassword))))
 	mux.Handle("DELETE /api/profile", rateLimitMiddleware.Limit(usecase.RateLimitPolicy{Limit: 3, Window: time.Minute}, middleware.JWTAuth(tokenManager, http.HandlerFunc(profileHandler.DeactivateAccount))))
 }

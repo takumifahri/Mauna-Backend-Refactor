@@ -17,6 +17,7 @@ func RegisterAdminUsersRoutes(mux *http.ServeMux, userService usecase.Management
 	mux.Handle("POST /api/admin/users", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.CreateUser))))
 	mux.Handle("GET /api/admin/users/{id}", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.GetUser))))
 	mux.Handle("PATCH /api/admin/users/{id}", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.UpdateUser))))
+	mux.Handle("PATCH /api/admin/users/{id}/soft-delete", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.SoftDeleteUser))))
 	mux.Handle("DELETE /api/admin/users/{id}", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.DeleteUser))))
 	mux.Handle("PATCH /api/admin/users/{id}/restore", rateLimitMiddleware.Limit(policy, middleware.JWTAuth(tokenManager, http.HandlerFunc(handler.RestoreUser))))
 }

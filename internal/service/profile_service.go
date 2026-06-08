@@ -132,6 +132,34 @@ func (s *profileService) DeactivateAccount(ctx context.Context, userID string) e
 	return nil
 }
 
+func (s *profileService) UpdateAvatar(ctx context.Context, userID string, avatar string, avatarURL string) (dto.ProfileResponse, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		slog.WarnContext(ctx, "profile_avatar_user_failed", slog.Any("error", err), slog.String("user_id", userID))
+		return dto.ProfileResponse{}, domain.ErrUserNotFound
+	}
+	if !user.IsActive {
+		return dto.ProfileResponse{}, domain.ErrUnauthorized
+	}
+
+	if strings.TrimSpace(avatar) == "" || strings.TrimSpace(avatarURL) == "" {
+		return dto.ProfileResponse{}, domain.NewBusinessError("INVALID_AVATAR", "avatar file is required", domain.ErrInvalidRequest)
+	}
+
+	if err := s.userRepo.UpdateAvatar(ctx, userID, avatar, avatarURL); err != nil {
+		slog.ErrorContext(ctx, "profile_avatar_update_failed", slog.Any("error", err), slog.String("user_id", userID))
+		return dto.ProfileResponse{}, domain.NewInternalError(err)
+	}
+
+	updatedUser, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		slog.ErrorContext(ctx, "profile_avatar_get_user_failed", slog.Any("error", err), slog.String("user_id", userID))
+		return dto.ProfileResponse{}, domain.NewInternalError(err)
+	}
+
+	return profileResponseFromUser(updatedUser), nil
+}
+
 func (s *profileService) ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
