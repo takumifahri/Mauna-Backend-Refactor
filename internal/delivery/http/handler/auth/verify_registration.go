@@ -11,20 +11,20 @@ import (
 	"REFACTORING_MAUNA/pkg/validation"
 )
 
-func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) VerifyRegistration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var req dto.RegisterRequest
+	var req dto.VerifyRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		logRequestError(r, "register_decode_failed", http.StatusBadRequest, err)
+		logRequestError(r, "verify_registration_decode_failed", http.StatusBadRequest, err)
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}
 	if err := validation.Validate(req); err != nil {
-		logRequestError(r, "register_validation_failed", http.StatusBadRequest, err)
+		logRequestError(r, "verify_registration_validation_failed", http.StatusBadRequest, err)
 		writeMessageErrorResponse(w, http.StatusBadRequest, "Invalid request", err)
 		return
 	}
@@ -32,19 +32,21 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	resp, err := h.authService.Register(ctx, req)
+	resp, err := h.authService.VerifyRegistration(ctx, req)
 	if err != nil {
 		statusCode := domain.ErrorToStatusCode(err)
-		logRequestError(r, "register_failed", statusCode, err)
+		logRequestError(r, "verify_registration_failed", statusCode, err)
 		writeErrorResponse(w, statusCode, err)
 		return
 	}
 
+	setAuthCookies(w, resp.AccessToken, resp.RefreshToken)
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(dto.Response{
 		Status:    "success",
-		Message:   "Registration OTP sent",
+		Message:   "Registration verified successfully",
 		Data:      resp,
 		Timestamp: time.Now().Format(time.RFC3339),
 	})

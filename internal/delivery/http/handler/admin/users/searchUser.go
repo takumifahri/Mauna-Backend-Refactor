@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
-	if !h.requireAdmin(w, r) {
+	if !h.RequireAdmin(w, r) {
 		return
 	}
 
@@ -36,8 +36,8 @@ func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.userService.ListUsers(ctx, filter)
 	if err != nil {
-		writeAdminError(w, err)
+		h.WriteError(w, err)
 		return
 	}
-	writeAdminJSON(w, http.StatusOK, "Users retrieved successfully", resp)
+	h.WriteJSON(w, http.StatusOK, "Users retrieved successfully", resp)
 }

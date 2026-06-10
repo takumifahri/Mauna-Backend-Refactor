@@ -1,4 +1,4 @@
-package users
+package badges
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RestoreBadge(w http.ResponseWriter, r *http.Request) {
 	if !h.RequireAdmin(w, r) {
 		return
 	}
@@ -14,16 +14,16 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	id, err := userIDFromPath(r)
+	id, err := badgeIDFromPath(r)
 	if err != nil {
 		h.WriteError(w, err)
 		return
 	}
 
-	resp, err := h.userService.GetUser(ctx, id)
+	resp, err := h.badgeService.RestoreBadge(ctx, id)
 	if err != nil {
 		h.WriteError(w, err)
 		return
 	}
-	h.WriteJSON(w, http.StatusOK, "User retrieved successfully", resp)
+	h.WriteJSON(w, http.StatusOK, "Badge restored successfully", resp)
 }

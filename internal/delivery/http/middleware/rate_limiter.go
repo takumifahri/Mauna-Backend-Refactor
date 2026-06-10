@@ -23,25 +23,39 @@ func NewRateLimitMiddleware(rateLimiter usecase.RateLimiterUsecase) *RateLimitMi
 }
 
 func (m *RateLimitMiddleware) Limit(policy usecase.RateLimitPolicy, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		decision, err := m.rateLimiter.Allow(r.Context(), rateLimitKey(r), policy)
-		if err != nil {
-			logRequestError(r, "rate_limit_failed", http.StatusInternalServerError, err)
-			writeRateLimitError(w)
-			return
-		}
-		if decision.Allowed {
-			next.ServeHTTP(w, r)
-			return
-		}
+	return m.Limiter(policy)(next)
+}
 
-		logRequestError(r, "rate_limit_exceeded", http.StatusTooManyRequests, nil)
-		writeRateLimitExceeded(w, decision.RetryAfter)
-	})
+func (m *RateLimitMiddleware) Limiter(policy usecase.RateLimitPolicy) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			decision, err := m.rateLimiter.Allow(r.Context(), rateLimitKey(r), policy)
+			if err != nil {
+				logRequestError(r, "rate_limit_failed", http.StatusInternalServerError, err)
+				writeRateLimitError(w)
+				return
+			}
+			if decision.Allowed {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			logRequestError(r, "rate_limit_exceeded", http.StatusTooManyRequests, nil)
+			writeRateLimitExceeded(w, decision.RetryAfter)
+		})
+	}
 }
 
 func rateLimitKey(r *http.Request) string {
-	return r.Method + ":" + r.URL.Path + ":" + clientIP(r)
+	path := r.Pattern
+	if path == "" {
+		path = r.URL.Path
+	}
+	if strings.HasPrefix(path, r.Method+" ") {
+		path = strings.TrimPrefix(path, r.Method+" ")
+	}
+
+	return r.Method + ":" + path + ":" + clientIP(r)
 }
 
 func clientIP(r *http.Request) string {

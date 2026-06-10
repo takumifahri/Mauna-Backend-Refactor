@@ -45,6 +45,22 @@ func (m *SMTPMailer) SendPasswordReset(ctx context.Context, to string, name stri
 	return smtp.SendMail(m.host+":"+m.port, auth, m.fromEmail, []string{to}, []byte(message))
 }
 
+func (m *SMTPMailer) SendRegistrationOTP(ctx context.Context, to string, name string, otp string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if m.host == "" || m.port == "" || m.username == "" || m.password == "" || m.fromEmail == "" {
+		return fmt.Errorf("smtp configuration is incomplete")
+	}
+
+	subject := "Kode Verifikasi Registrasi Mauna"
+	body := registrationOTPBody(name, otp)
+	message := m.message(to, subject, body)
+
+	auth := smtp.PlainAuth("", m.username, m.password, m.host)
+	return smtp.SendMail(m.host+":"+m.port, auth, m.fromEmail, []string{to}, []byte(message))
+}
+
 func (m *SMTPMailer) message(to string, subject string, body string) string {
 	headers := map[string]string{
 		"From":         fmt.Sprintf("%s <%s>", m.fromName, m.fromEmail),
@@ -83,6 +99,20 @@ func passwordResetBody(name string, resetToken string, resetURL string) string {
 	builder.WriteString("Token reset password kamu:\n")
 	builder.WriteString(resetToken)
 	builder.WriteString("\n\nToken ini berlaku 15 menit. Abaikan email ini kalau kamu tidak meminta reset password.\n")
+	return builder.String()
+}
+
+func registrationOTPBody(name string, otp string) string {
+	if strings.TrimSpace(name) == "" {
+		name = "Mauna user"
+	}
+
+	var builder strings.Builder
+	builder.WriteString("Halo ")
+	builder.WriteString(name)
+	builder.WriteString(",\n\nMasukkan kode berikut untuk menyelesaikan registrasi akun Mauna kamu:\n")
+	builder.WriteString(otp)
+	builder.WriteString("\n\nKode ini berlaku 10 menit. Abaikan email ini kalau kamu tidak membuat akun Mauna.\n")
 	return builder.String()
 }
 

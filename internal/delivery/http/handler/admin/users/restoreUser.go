@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) RestoreUser(w http.ResponseWriter, r *http.Request) {
-	if !h.requireAdmin(w, r) {
+	if !h.RequireAdmin(w, r) {
 		return
 	}
 
@@ -16,14 +16,14 @@ func (h *Handler) RestoreUser(w http.ResponseWriter, r *http.Request) {
 
 	id, err := userIDFromPath(r)
 	if err != nil {
-		writeAdminError(w, err)
+		h.WriteError(w, err)
 		return
 	}
 
 	resp, err := h.userService.RestoreUser(ctx, id)
 	if err != nil {
-		writeAdminError(w, err)
+		h.WriteError(w, err)
 		return
 	}
-	writeAdminJSON(w, http.StatusOK, "User restored successfully", resp)
+	h.WriteJSON(w, http.StatusOK, "User restored successfully", resp)
 }

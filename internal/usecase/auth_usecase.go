@@ -20,6 +20,7 @@ type TokenManager interface {
 type AuthUsecase interface {
 	Login(ctx context.Context, req dto.LoginRequest) (dto.LoginResponse, error)
 	Register(ctx context.Context, req dto.RegisterRequest) (dto.RegisterResponse, error)
+	VerifyRegistration(ctx context.Context, req dto.VerifyRegistrationRequest) (dto.AuthResponse, error)
 	ForgotPassword(ctx context.Context, req dto.ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req dto.ResetPasswordRequest) error
 	ChangePassword(ctx context.Context, userID string, req dto.ChangePasswordRequest) error
@@ -29,4 +30,5 @@ type AuthUsecase interface {
 
 type PasswordResetMailer interface {
 	SendPasswordReset(ctx context.Context, to string, name string, resetToken string, resetURL string) error
+	SendRegistrationOTP(ctx context.Context, to string, name string, otp string) error
 }

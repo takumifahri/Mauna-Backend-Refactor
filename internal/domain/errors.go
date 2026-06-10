@@ -7,21 +7,22 @@ import (
 
 // Domain errors
 var (
-	ErrUserNotFound       = fmt.Errorf("user not found")
-	ErrUserAlreadyExists  = fmt.Errorf("user already exists")
-	ErrInvalidCredentials = fmt.Errorf("invalid email/username or password")
-	ErrInvalidEmail       = fmt.Errorf("invalid email format")
-	ErrInvalidResetToken  = fmt.Errorf("invalid or expired reset token")
-	ErrPasswordTooShort   = fmt.Errorf("password must be at least 6 characters")
-	ErrInvalidRequest     = fmt.Errorf("invalid request")
-	ErrUnauthorized       = fmt.Errorf("unauthorized")
-	ErrForbidden          = fmt.Errorf("forbidden")
-	ErrInternal           = fmt.Errorf("internal server error")
-	ErrBadgeNotFound      = fmt.Errorf("badge not found")
-	ErrDictionaryNotFound = fmt.Errorf("dictionary not found")
-	ErrLevelNotFound      = fmt.Errorf("level not found")
-	ErrQuestionNotFound   = fmt.Errorf("question not found")
-	ErrProgressNotFound   = fmt.Errorf("progress not found")
+	ErrUserNotFound           = fmt.Errorf("user not found")
+	ErrUserAlreadyExists      = fmt.Errorf("user already exists")
+	ErrInvalidCredentials     = fmt.Errorf("invalid email/username or password")
+	ErrInvalidEmail           = fmt.Errorf("invalid email format")
+	ErrInvalidResetToken      = fmt.Errorf("invalid or expired reset token")
+	ErrInvalidRegistrationOTP = fmt.Errorf("invalid or expired registration otp")
+	ErrPasswordTooShort       = fmt.Errorf("password must be at least 6 characters")
+	ErrInvalidRequest         = fmt.Errorf("invalid request")
+	ErrUnauthorized           = fmt.Errorf("unauthorized")
+	ErrForbidden              = fmt.Errorf("forbidden")
+	ErrInternal               = fmt.Errorf("internal server error")
+	ErrBadgeNotFound          = fmt.Errorf("badge not found")
+	ErrDictionaryNotFound     = fmt.Errorf("dictionary not found")
+	ErrLevelNotFound          = fmt.Errorf("level not found")
+	ErrQuestionNotFound       = fmt.Errorf("question not found")
+	ErrProgressNotFound       = fmt.Errorf("progress not found")
 )
 
 // Custom error type untuk response
@@ -101,7 +102,7 @@ func ErrorToStatusCode(err error) int {
 	switch err {
 	case ErrUserNotFound, ErrBadgeNotFound, ErrDictionaryNotFound:
 		return 404
-	case ErrInvalidRequest, ErrInvalidEmail, ErrInvalidResetToken, ErrPasswordTooShort:
+	case ErrInvalidRequest, ErrInvalidEmail, ErrInvalidResetToken, ErrInvalidRegistrationOTP, ErrPasswordTooShort:
 		return 400
 	case ErrInvalidCredentials:
 		return 401

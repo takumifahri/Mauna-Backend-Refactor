@@ -27,6 +27,10 @@
     {
       "name": "Admin Users",
       "description": "Admin-only user management endpoints"
+    },
+    {
+      "name": "Admin Badges",
+      "description": "Admin-only badge management endpoints"
     }
   ],
   "paths": {
@@ -97,7 +101,8 @@
     "/api/auth/register": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Register a new user",
+        "summary": "Start registration and send OTP",
+        "description": "Stores the registration payload in a pending table, sends a verification OTP to email, and does not create the user until OTP verification succeeds.",
         "requestBody": {
           "required": true,
           "content": {
@@ -115,8 +120,47 @@
           }
         },
         "responses": {
+          "202": {
+            "description": "Registration OTP sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/api/auth/verify-registration": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Verify registration OTP",
+        "description": "Creates the user with is_verified=true after OTP validation and returns access/refresh tokens while setting HttpOnly auth cookies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRegistrationRequest"
+              },
+              "example": {
+                "email": "takumi@example.com",
+                "otp": "123456"
+              }
+            }
+          }
+        },
+        "responses": {
           "201": {
-            "description": "User registered",
+            "description": "Registration verified and user created",
             "content": {
               "application/json": {
                 "schema": {
@@ -1038,6 +1082,191 @@
           }
         }
       }
+    },
+    "/api/admin/badges": {
+      "get": {
+        "tags": ["Admin Badges"],
+        "summary": "List and search badges",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" } },
+          { "name": "id", "in": "query", "schema": { "type": "integer", "format": "int64" } },
+          { "name": "name", "in": "query", "schema": { "type": "string" } },
+          { "name": "level", "in": "query", "schema": { "type": "string", "enum": ["easy", "medium", "hard"] } },
+          { "name": "include_deleted", "in": "query", "schema": { "type": "boolean", "default": false } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } },
+          { "name": "sort_by", "in": "query", "schema": { "type": "string", "enum": ["created_at", "updated_at", "name", "level"] } },
+          { "name": "sort_order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Badges retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Response" },
+                    { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/ManagementBadgesListResponse" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
+      "post": {
+        "tags": ["Admin Badges"],
+        "summary": "Create badge",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateManagementBadgeRequest" } },
+            "multipart/form-data": { "schema": { "$ref": "#/components/schemas/CreateManagementBadgeMultipartRequest" } },
+            "application/x-www-form-urlencoded": { "schema": { "$ref": "#/components/schemas/CreateManagementBadgeRequest" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Badge created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Response" },
+                    { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/ManagementBadgeResponse" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/admin/badges/{id}": {
+      "get": {
+        "tags": ["Admin Badges"],
+        "summary": "Get badge detail",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/BadgeID" }],
+        "responses": {
+          "200": {
+            "description": "Badge retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Response" },
+                    { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/ManagementBadgeResponse" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "tags": ["Admin Badges"],
+        "summary": "Update badge",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/BadgeID" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateManagementBadgeRequest" } },
+            "multipart/form-data": { "schema": { "$ref": "#/components/schemas/UpdateManagementBadgeMultipartRequest" } },
+            "application/x-www-form-urlencoded": { "schema": { "$ref": "#/components/schemas/UpdateManagementBadgeRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Badge updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Response" },
+                    { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/ManagementBadgeResponse" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "delete": {
+        "tags": ["Admin Badges"],
+        "summary": "Delete badge",
+        "description": "Soft deletes a badge by default. Use ?hard=true for hard delete.",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/BadgeID" },
+          { "name": "hard", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": { "description": "Badge deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Response" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/admin/badges/{id}/soft-delete": {
+      "patch": {
+        "tags": ["Admin Badges"],
+        "summary": "Soft delete badge",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/BadgeID" }],
+        "responses": {
+          "200": { "description": "Badge soft deleted", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Response" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/admin/badges/{id}/restore": {
+      "patch": {
+        "tags": ["Admin Badges"],
+        "summary": "Restore soft deleted badge",
+        "security": [{ "cookieAuth": [] }, { "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/BadgeID" }],
+        "responses": {
+          "200": {
+            "description": "Badge restored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    { "$ref": "#/components/schemas/Response" },
+                    { "type": "object", "properties": { "data": { "$ref": "#/components/schemas/ManagementBadgeResponse" } } }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
     }
   },
   "components": {
@@ -1063,6 +1292,16 @@
           "format": "uuid"
         },
         "description": "User UUID"
+      },
+      "BadgeID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "description": "Badge ID"
       }
     },
     "responses": {
@@ -1189,6 +1428,22 @@
             "type": "string",
             "minLength": 3,
             "maxLength": 100
+          }
+        }
+      },
+      "VerifyRegistrationRequest": {
+        "type": "object",
+        "required": ["email", "otp"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "otp": {
+            "type": "string",
+            "minLength": 6,
+            "maxLength": 6,
+            "example": "123456"
           }
         }
       },
@@ -1563,6 +1818,139 @@
             "format": "date-time"
           },
           "last_login": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deleted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateManagementBadgeRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "First Steps"
+          },
+          "description": {
+            "type": "string",
+            "example": "Awarded when a user completes the first lesson"
+          },
+          "icon": {
+            "type": "string",
+            "example": "badges/first_steps.png"
+          },
+          "level": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"],
+            "default": "easy"
+          }
+        }
+      },
+      "UpdateManagementBadgeRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          }
+        }
+      },
+      "CreateManagementBadgeMultipartRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "First Steps"
+          },
+          "description": {
+            "type": "string",
+            "example": "Awarded when a user completes the first lesson"
+          },
+          "icon": {
+            "type": "string",
+            "format": "binary",
+            "description": "Badge icon image file. JPEG, PNG, or WebP up to 2MB."
+          },
+          "level": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"],
+            "default": "easy"
+          }
+        }
+      },
+      "UpdateManagementBadgeMultipartRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "format": "binary",
+            "description": "Badge icon image file. JPEG, PNG, or WebP up to 2MB."
+          },
+          "level": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          }
+        }
+      },
+      "ManagementBadgesListResponse": {
+        "type": "object",
+        "properties": {
+          "badges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagementBadgeResponse"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationResponse"
+          }
+        }
+      },
+      "ManagementBadgeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": ["easy", "medium", "hard"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
             "type": "string",
             "format": "date-time"
           },

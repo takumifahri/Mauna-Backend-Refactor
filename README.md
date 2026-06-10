@@ -228,7 +228,16 @@ Contoh query Loki di Grafana Explore:
 Log request membawa `trace_id` dan `span_id`, jadi error di Loki bisa dicari kembali di Jaeger.
 
 ## Auth JWT dan Cookies
-Login akan mengembalikan token di JSON response dan juga menulis cookie:
+Register memakai verifikasi OTP email:
+
+```text
+POST /api/auth/register             - kirim data register, backend mengirim OTP
+POST /api/auth/verify-registration  - kirim email + OTP, user baru dibuat
+```
+
+Data user belum masuk ke tabel `users` sampai OTP valid. Setelah OTP valid, user dibuat dengan `is_verified=true`, lalu backend mengembalikan token di JSON response dan menulis cookie.
+
+Login juga akan mengembalikan token di JSON response dan menulis cookie:
 
 ```text
 access_token  - HttpOnly, 24 jam

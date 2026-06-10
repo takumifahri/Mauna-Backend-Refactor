@@ -31,6 +31,7 @@ var availableRoutes = []Route{
 	{Path: "/metrics", Method: "GET", Handler: "PrometheusMetrics"},
 	{Path: "/api/auth/login", Method: "POST", Handler: "Login"},
 	{Path: "/api/auth/register", Method: "POST", Handler: "Register"},
+	{Path: "/api/auth/verify-registration", Method: "POST", Handler: "VerifyRegistration"},
 	{Path: "/api/auth/forgot-password", Method: "POST", Handler: "ForgotPassword"},
 	{Path: "/api/auth/reset-password", Method: "POST", Handler: "ResetPassword"},
 	{Path: "/api/auth/change-password", Method: "POST", Handler: "ChangePassword"},
@@ -48,6 +49,13 @@ var availableRoutes = []Route{
 	{Path: "/api/admin/users/{id}/soft-delete", Method: "PATCH", Handler: "AdminSoftDeleteUser"},
 	{Path: "/api/admin/users/{id}", Method: "DELETE", Handler: "AdminDeleteUser"},
 	{Path: "/api/admin/users/{id}/restore", Method: "PATCH", Handler: "AdminRestoreUser"},
+	{Path: "/api/admin/badges", Method: "GET", Handler: "AdminListBadges"},
+	{Path: "/api/admin/badges", Method: "POST", Handler: "AdminCreateBadge"},
+	{Path: "/api/admin/badges/{id}", Method: "GET", Handler: "AdminGetBadge"},
+	{Path: "/api/admin/badges/{id}", Method: "PATCH", Handler: "AdminUpdateBadge"},
+	{Path: "/api/admin/badges/{id}/soft-delete", Method: "PATCH", Handler: "AdminSoftDeleteBadge"},
+	{Path: "/api/admin/badges/{id}", Method: "DELETE", Handler: "AdminDeleteBadge"},
+	{Path: "/api/admin/badges/{id}/restore", Method: "PATCH", Handler: "AdminRestoreBadge"},
 }
 
 // GetRoutes returns all available routes
@@ -73,14 +81,17 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	tokenBlacklistRepo := repository.NewTokenBlacklistRepository(db)
 	rateLimitRepo := repository.NewRateLimitRepository(db)
 	passwordResetTokenRepo := repository.NewPasswordResetTokenRepository(db)
+	pendingRegistrationRepo := repository.NewPendingRegistrationRepository(db)
 	managementUsersRepo := repository.NewManagementUsersRepository(db)
+	managementBadgesRepo := repository.NewManagementBadgesRepository(db)
 	passwordResetMailer := mailer.NewSMTPMailerFromEnv()
 	tokenManager := security.NewJWTManager()
 
 	// Initialize services
-	authService := service.NewAuthService(userRepo, tokenBlacklistRepo, passwordResetTokenRepo, passwordResetMailer, tokenManager)
+	authService := service.NewAuthService(userRepo, tokenBlacklistRepo, passwordResetTokenRepo, pendingRegistrationRepo, passwordResetMailer, tokenManager)
 	profileService := service.NewProfileService(userRepo)
 	adminUsersService := service.NewManagementUsersService(managementUsersRepo)
+	adminBadgesService := service.NewManagementBadgesService(managementBadgesRepo)
 	rateLimiter := service.NewRateLimiterService(rateLimitRepo, time.Minute)
 	rateLimitMiddleware := middleware.NewRateLimitMiddleware(rateLimiter)
 
@@ -88,6 +99,7 @@ func RegisterRoutes(mux *http.ServeMux, db *database.DB) {
 	routes.RegisterAuthRoutes(mux, authService, tokenManager, rateLimitMiddleware) // ← No conflict now!
 	routes.RegisterProfileRoutes(mux, profileService, tokenManager, rateLimitMiddleware)
 	routes.RegisterAdminUsersRoutes(mux, adminUsersService, tokenManager, rateLimitMiddleware)
+	routes.RegisterAdminBadgesRoutes(mux, adminBadgesService, tokenManager, rateLimitMiddleware)
 
 	// Public routes (health, root)
 	mux.HandleFunc("GET /swagger/", SwaggerUIHandler())

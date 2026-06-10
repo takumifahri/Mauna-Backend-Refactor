@@ -19,12 +19,13 @@ import (
 
 // authService implementation
 type authService struct {
-	userRepo               domain.UserRepository
-	tokenBlacklistRepo     domain.TokenBlacklistRepository
-	passwordResetTokenRepo domain.PasswordResetTokenRepository
-	passwordResetMailer    usecase.PasswordResetMailer
-	tokenManager           usecase.TokenManager
-	passwordResetBaseURL   string
+	userRepo                domain.UserRepository
+	tokenBlacklistRepo      domain.TokenBlacklistRepository
+	passwordResetTokenRepo  domain.PasswordResetTokenRepository
+	pendingRegistrationRepo domain.PendingRegistrationRepository
+	passwordResetMailer     usecase.PasswordResetMailer
+	tokenManager            usecase.TokenManager
+	passwordResetBaseURL    string
 }
 
 // Constructor
@@ -32,16 +33,18 @@ func NewAuthService(
 	userRepo domain.UserRepository,
 	tokenBlacklistRepo domain.TokenBlacklistRepository,
 	passwordResetTokenRepo domain.PasswordResetTokenRepository,
+	pendingRegistrationRepo domain.PendingRegistrationRepository,
 	passwordResetMailer usecase.PasswordResetMailer,
 	tokenManager usecase.TokenManager,
 ) usecase.AuthUsecase {
 	return &authService{
-		userRepo:               userRepo,
-		tokenBlacklistRepo:     tokenBlacklistRepo,
-		passwordResetTokenRepo: passwordResetTokenRepo,
-		passwordResetMailer:    passwordResetMailer,
-		tokenManager:           tokenManager,
-		passwordResetBaseURL:   os.Getenv("PASSWORD_RESET_BASE_URL"),
+		userRepo:                userRepo,
+		tokenBlacklistRepo:      tokenBlacklistRepo,
+		passwordResetTokenRepo:  passwordResetTokenRepo,
+		pendingRegistrationRepo: pendingRegistrationRepo,
+		passwordResetMailer:     passwordResetMailer,
+		tokenManager:            tokenManager,
+		passwordResetBaseURL:    os.Getenv("PASSWORD_RESET_BASE_URL"),
 	}
 }
 
@@ -115,6 +118,16 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		return dto.RegisterResponse{}, fmt.Errorf("all fields are required")
 	}
 
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Username == "" || req.Email == "" || req.Password == "" || req.Name == "" {
+		return dto.RegisterResponse{}, fmt.Errorf("all fields are required")
+	}
+	if address, err := mail.ParseAddress(req.Email); err != nil || address.Address != req.Email {
+		return dto.RegisterResponse{}, domain.ErrInvalidEmail
+	}
+
 	// Check if email exists
 	exists, err := s.userRepo.CheckEmailExists(ctx, req.Email)
 	if err != nil {
@@ -142,30 +155,115 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		return dto.RegisterResponse{}, domain.NewInternalError(err)
 	}
 
-	// Convert name to pointer
-	name := req.Name
+	otp, err := security.GenerateNumericOTP(6)
+	if err != nil {
+		slog.ErrorContext(ctx, "register_otp_generate_failed", slog.Any("error", err), slog.String("email", req.Email))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
+	}
 
-	// Create user in database
-	user := &entities.User{
+	expiresAt := time.Now().Add(10 * time.Minute)
+	if err := s.pendingRegistrationRepo.Upsert(ctx, &entities.PendingRegistration{
 		Username:     req.Username,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
-		Nama:         &name,             // Use pointer
-		Role:         constant.RoleUser, // Use constant
-		IsActive:     false,
-		IsVerified:   false,
+		Nama:         req.Name,
+		OTPHash:      security.HashSHA256(otp),
+		ExpiresAt:    expiresAt,
+	}); err != nil {
+		slog.ErrorContext(ctx, "register_pending_upsert_failed", slog.Any("error", err), slog.String("email", req.Email), slog.String("username", req.Username))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
 	}
 
+	if err := s.passwordResetMailer.SendRegistrationOTP(ctx, req.Email, req.Name, otp); err != nil {
+		slog.ErrorContext(ctx, "register_send_otp_failed", slog.Any("error", err), slog.String("email", req.Email))
+		return dto.RegisterResponse{}, domain.NewInternalError(err)
+	}
+
+	return dto.RegisterResponse{
+		Email:     req.Email,
+		ExpiresAt: expiresAt,
+	}, nil
+}
+
+func (s *authService) VerifyRegistration(ctx context.Context, req dto.VerifyRegistrationRequest) (dto.AuthResponse, error) {
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	otp := strings.TrimSpace(req.OTP)
+	if email == "" || otp == "" {
+		return dto.AuthResponse{}, domain.ErrInvalidRegistrationOTP
+	}
+	if address, err := mail.ParseAddress(email); err != nil || address.Address != email {
+		return dto.AuthResponse{}, domain.ErrInvalidEmail
+	}
+
+	pending, err := s.pendingRegistrationRepo.GetValidByEmail(ctx, email)
+	if err != nil {
+		if err == domain.ErrInvalidRegistrationOTP {
+			return dto.AuthResponse{}, err
+		}
+		slog.ErrorContext(ctx, "verify_registration_get_pending_failed", slog.Any("error", err), slog.String("email", email))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
+	}
+	if pending.Attempts >= 5 {
+		return dto.AuthResponse{}, domain.ErrInvalidRegistrationOTP
+	}
+	if security.HashSHA256(otp) != pending.OTPHash {
+		if err := s.pendingRegistrationRepo.IncrementAttempts(ctx, pending.ID); err != nil {
+			slog.ErrorContext(ctx, "verify_registration_increment_attempt_failed", slog.Any("error", err), slog.String("email", email))
+			return dto.AuthResponse{}, domain.NewInternalError(err)
+		}
+		return dto.AuthResponse{}, domain.ErrInvalidRegistrationOTP
+	}
+
+	exists, err := s.userRepo.CheckEmailExists(ctx, pending.Email)
+	if err != nil {
+		slog.ErrorContext(ctx, "verify_registration_check_email_failed", slog.Any("error", err), slog.String("email", pending.Email))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
+	}
+	if exists {
+		return dto.AuthResponse{}, domain.ErrUserAlreadyExists
+	}
+	exists, err = s.userRepo.CheckUsernameExists(ctx, pending.Username)
+	if err != nil {
+		slog.ErrorContext(ctx, "verify_registration_check_username_failed", slog.Any("error", err), slog.String("username", pending.Username))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
+	}
+	if exists {
+		return dto.AuthResponse{}, domain.ErrUserAlreadyExists
+	}
+
+	name := pending.Nama
+	user := &entities.User{
+		Username:     pending.Username,
+		Email:        pending.Email,
+		PasswordHash: pending.PasswordHash,
+		Nama:         &name,
+		Role:         constant.RoleUser,
+		IsActive:     true,
+		IsVerified:   true,
+	}
 	userID, err := s.userRepo.Create(ctx, user)
 	if err != nil {
-		slog.ErrorContext(ctx, "register_create_user_failed", slog.Any("error", err), slog.String("email", req.Email), slog.String("username", req.Username))
-		return dto.RegisterResponse{}, domain.NewInternalError(err)
+		slog.ErrorContext(ctx, "verify_registration_create_user_failed", slog.Any("error", err), slog.String("email", pending.Email), slog.String("username", pending.Username))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
+	}
+	if err := s.pendingRegistrationRepo.MarkConsumed(ctx, pending.ID); err != nil {
+		slog.ErrorContext(ctx, "verify_registration_mark_consumed_failed", slog.Any("error", err), slog.String("email", pending.Email), slog.Int64("pending_id", pending.ID))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
 	}
 
 	createdUser, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
-		slog.ErrorContext(ctx, "register_get_created_user_failed", slog.Any("error", err), slog.String("user_id", userID))
-		return dto.RegisterResponse{}, domain.NewInternalError(err)
+		slog.ErrorContext(ctx, "verify_registration_get_created_user_failed", slog.Any("error", err), slog.String("user_id", userID))
+		return dto.AuthResponse{}, domain.NewInternalError(err)
+	}
+
+	accessToken, err := s.tokenManager.GenerateAccessToken(createdUser.ID, createdUser.Username, createdUser.Email, string(createdUser.Role))
+	if err != nil {
+		return dto.AuthResponse{}, domain.ErrInternal
+	}
+	refreshToken, err := s.tokenManager.GenerateRefreshToken(createdUser.ID)
+	if err != nil {
+		return dto.AuthResponse{}, domain.ErrInternal
 	}
 
 	var createdName string
@@ -173,13 +271,20 @@ func (s *authService) Register(ctx context.Context, req dto.RegisterRequest) (dt
 		createdName = *createdUser.Nama
 	}
 
-	return dto.RegisterResponse{
-		ID:        createdUser.ID,
-		Username:  createdUser.Username,
-		Email:     createdUser.Email,
-		Name:      createdName,
-		Role:      string(createdUser.Role),
-		CreatedAt: createdUser.CreatedAt,
+	return dto.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    security.AccessTokenExpiresIn,
+		User: dto.UserDataResponse{
+			ID:         createdUser.ID,
+			Username:   createdUser.Username,
+			Email:      createdUser.Email,
+			Name:       createdName,
+			Role:       string(createdUser.Role),
+			IsActive:   createdUser.IsActive,
+			IsVerified: createdUser.IsVerified,
+			CreatedAt:  createdUser.CreatedAt,
+		},
 	}, nil
 }
 

@@ -116,6 +116,15 @@ type PasswordResetTokenRepository interface {
 	DeleteExpired(ctx context.Context, before time.Time) error
 }
 
+type PendingRegistrationRepository interface {
+	Upsert(ctx context.Context, registration *entities.PendingRegistration) error
+	GetValidByEmail(ctx context.Context, email string) (*entities.PendingRegistration, error)
+	IncrementAttempts(ctx context.Context, id int64) error
+	MarkConsumed(ctx context.Context, id int64) error
+	DeleteByEmail(ctx context.Context, email string) error
+	DeleteExpired(ctx context.Context, before time.Time) error
+}
+
 type ManagementUsersRepository interface {
 	List(ctx context.Context, filter admin.ManagementUsersFilter) (admin.ManagementUsersListResponse, error)
 	GetByID(ctx context.Context, id string, includeDeleted bool) (admin.ManagementUserResponse, error)
@@ -124,4 +133,14 @@ type ManagementUsersRepository interface {
 	SoftDelete(ctx context.Context, id string) error
 	HardDelete(ctx context.Context, id string) error
 	Restore(ctx context.Context, id string) error
+}
+
+type ManagementBadgesRepository interface {
+	List(ctx context.Context, filter admin.ManagementBadgesFilter) (admin.ManagementBadgesListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementBadgeResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementBadgeRequest) (int64, error)
+	Update(ctx context.Context, id int64, req admin.UpdateManagementBadgeRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
 }

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"log/slog"
-	"net/mail"
+	// "net/mail"
 	"strings"
 
 	"REFACTORING_MAUNA/internal/domain"
@@ -68,24 +68,24 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID string, req d
 		user.Username = username
 	}
 
-	if req.Email != nil {
-		email := strings.TrimSpace(*req.Email)
-		address, err := mail.ParseAddress(email)
-		if err != nil || address.Address != email {
-			return dto.ProfileResponse{}, domain.ErrInvalidEmail
-		}
-		if email != user.Email {
-			exists, err := s.userRepo.CheckEmailExists(ctx, email)
-			if err != nil {
-				slog.ErrorContext(ctx, "profile_update_check_email_failed", slog.Any("error", err), slog.String("email", email))
-				return dto.ProfileResponse{}, domain.NewInternalError(err)
-			}
-			if exists {
-				return dto.ProfileResponse{}, domain.ErrUserAlreadyExists
-			}
-		}
-		user.Email = email
-	}
+	// if req.Email != nil {
+	// 	email := strings.TrimSpace(*req.Email)
+	// 	address, err := mail.ParseAddress(email)
+	// 	if err != nil || address.Address != email {
+	// 		return dto.ProfileResponse{}, domain.ErrInvalidEmail
+	// 	}
+	// 	if email != user.Email {
+	// 		exists, err := s.userRepo.CheckEmailExists(ctx, email)
+	// 		if err != nil {
+	// 			slog.ErrorContext(ctx, "profile_update_check_email_failed", slog.Any("error", err), slog.String("email", email))
+	// 			return dto.ProfileResponse{}, domain.NewInternalError(err)
+	// 		}
+	// 		if exists {
+	// 			return dto.ProfileResponse{}, domain.ErrUserAlreadyExists
+	// 		}
+	// 	}
+	// 	user.Email = email
+	// }
 
 	if req.Name != nil {
 		user.Nama = trimmedStringPtr(*req.Name)

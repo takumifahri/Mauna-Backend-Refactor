@@ -16,6 +16,11 @@ type RegisterRequest struct {
 	Name     string `json:"name" validate:"required,min=3,max=100"`
 }
 
+type VerifyRegistrationRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	OTP   string `json:"otp" validate:"required,min=6,max=6"`
+}
+
 // UserDataResponse - untuk user response
 type UserDataResponse struct {
 	ID         string    `json:"id"`
@@ -39,12 +44,8 @@ type LoginResponse struct {
 
 // RegisterResponse - untuk register response
 type RegisterResponse struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
 	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type LogoutRequest struct {

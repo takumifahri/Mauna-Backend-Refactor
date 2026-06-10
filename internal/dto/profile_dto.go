@@ -27,7 +27,7 @@ type ProfileResponse struct {
 
 type UpdateProfileRequest struct {
 	Username  *string `json:"username,omitempty"`
-	Email     *string `json:"email,omitempty"`
+	// Email     *string `json:"email,omitempty"`
 	Name      *string `json:"name,omitempty"`
 	Phone     *string `json:"phone,omitempty"`
 	AvatarURL *string `json:"avatar_url,omitempty"`

@@ -50,6 +50,23 @@ CREATE TABLE users (
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 
+CREATE TABLE pending_registrations (
+    id BIGSERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    nama VARCHAR(255) NOT NULL,
+    otp_hash VARCHAR(64) NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    expires_at TIMESTAMPTZ NOT NULL,
+    consumed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX ix_pending_registrations_email ON pending_registrations(email);
+CREATE INDEX ix_pending_registrations_expires_at ON pending_registrations(expires_at);
+
 CREATE TABLE kamus (
     id BIGSERIAL PRIMARY KEY,
     word_text VARCHAR(255) NOT NULL UNIQUE,

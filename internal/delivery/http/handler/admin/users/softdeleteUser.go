@@ -7,7 +7,7 @@ import (
 )
 
 func (h *Handler) SoftDeleteUser(w http.ResponseWriter, r *http.Request) {
-	if !h.requireAdmin(w, r) {
+	if !h.RequireAdmin(w, r) {
 		return
 	}
 
@@ -16,14 +16,14 @@ func (h *Handler) SoftDeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	id, err := userIDFromPath(r)
 	if err != nil {
-		writeAdminError(w, err)
+		h.WriteError(w, err)
 		return
 	}
 
 	err = h.userService.SoftDeleteUser(ctx, id)
 	if err != nil {
-		writeAdminError(w, err)
+		h.WriteError(w, err)
 		return
 	}
-	writeAdminJSON(w, http.StatusOK, "User soft-deleted successfully", nil)
+	h.WriteJSON(w, http.StatusOK, "User soft-deleted successfully", nil)
 }

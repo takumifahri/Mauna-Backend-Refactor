@@ -1,4 +1,4 @@
-package users
+package badges
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteBadge(w http.ResponseWriter, r *http.Request) {
 	if !h.RequireAdmin(w, r) {
 		return
 	}
@@ -14,7 +14,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	id, err := userIDFromPath(r)
+	id, err := badgeIDFromPath(r)
 	if err != nil {
 		h.WriteError(w, err)
 		return
@@ -22,13 +22,13 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	var deleteErr error
 	if boolQuery(r.URL.Query().Get("hard")) {
-		deleteErr = h.userService.HardDeleteUser(ctx, id)
+		deleteErr = h.badgeService.HardDeleteBadge(ctx, id)
 	} else {
-		deleteErr = h.userService.SoftDeleteUser(ctx, id)
+		deleteErr = h.badgeService.SoftDeleteBadge(ctx, id)
 	}
 	if deleteErr != nil {
 		h.WriteError(w, deleteErr)
 		return
 	}
-	h.WriteJSON(w, http.StatusOK, "User deleted successfully", nil)
+	h.WriteJSON(w, http.StatusOK, "Badge deleted successfully", nil)
 }
