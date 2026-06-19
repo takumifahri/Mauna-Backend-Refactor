@@ -32,7 +32,7 @@ func (r *managementBadgesRepository) List(ctx context.Context, filter admin.Mana
 
 	query := fmt.Sprintf(`SELECT id, nama AS name, COALESCE(deskripsi, '') AS description,
 		COALESCE(icon, '') AS icon, level::text AS level, created_at, updated_at, deleted_at
-		FROM badges %s ORDER BY %s %s LIMIT $%d OFFSET $%d`, where, orderBy, sortOrder, len(args)+1, len(args)+2)
+		FROM badges %s ORDER BY %s %s, id %s LIMIT $%d OFFSET $%d`, where, orderBy, sortOrder, sortOrder, len(args)+1, len(args)+2)
 	args = append(args, filter.Limit, filter.Offset)
 
 	badges := []admin.ManagementBadgeResponse{}

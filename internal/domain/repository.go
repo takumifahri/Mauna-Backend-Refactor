@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"REFACTORING_MAUNA/internal/domain/entities"
-	"REFACTORING_MAUNA/internal/dto/admin"
+	admin "REFACTORING_MAUNA/internal/dto/admin"
 )
 
 // UserRepository interface untuk User operations
@@ -140,6 +140,54 @@ type ManagementBadgesRepository interface {
 	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementBadgeResponse, error)
 	Create(ctx context.Context, req admin.CreateManagementBadgeRequest) (int64, error)
 	Update(ctx context.Context, id int64, req admin.UpdateManagementBadgeRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
+}
+
+type ManagementDictionaryRepository interface {
+	List(ctx context.Context, filter admin.ManagementDictionaryFilter) (admin.ManagementDictionaryListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementDictionaryResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementDictionaryRequest) (int64, error)
+	Update(ctx context.Context, id int64, req admin.UpdateManagementDictionaryRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
+}
+
+type ManagementLevelsRepository interface {
+	List(ctx context.Context, filter admin.ManagementLevelsFilter) (admin.ManagementLevelsListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementLevelResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementLevelRequest) (int64, error)
+	Update(ctx context.Context, id int64, req admin.UpdateManagementLevelRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
+}
+
+type ManagementSubLevelsRepository interface {
+	List(ctx context.Context, filter admin.ManagementSubLevelsFilter) (admin.ManagementSubLevelsListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementSubLevelResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementSubLevelRequest) (int64, error)
+	Update(ctx context.Context, id int64, req admin.UpdateManagementSubLevelRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
+}
+
+type ManagementSoalRepository interface {
+	List(ctx context.Context, filter admin.ManagementSoalFilter) (admin.ManagementSoalListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementSoalResponse, error)
+	Create(ctx context.Context, req admin.CreateManagementSoalRequest) (int64, error)
+	Update(ctx context.Context, id int64, req admin.UpdateManagementSoalRequest) error
+	SoftDelete(ctx context.Context, id int64) error
+	HardDelete(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
+}
+
+type ManagementProgressRepository interface {
+	List(ctx context.Context, filter admin.ManagementProgressFilter) (admin.ManagementProgressListResponse, error)
+	GetByID(ctx context.Context, id int64, includeDeleted bool) (admin.ManagementProgressResponse, error)
 	SoftDelete(ctx context.Context, id int64) error
 	HardDelete(ctx context.Context, id int64) error
 	Restore(ctx context.Context, id int64) error

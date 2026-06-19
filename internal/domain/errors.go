@@ -21,6 +21,7 @@ var (
 	ErrBadgeNotFound          = fmt.Errorf("badge not found")
 	ErrDictionaryNotFound     = fmt.Errorf("dictionary not found")
 	ErrLevelNotFound          = fmt.Errorf("level not found")
+	ErrSubLevelNotFound       = fmt.Errorf("sublevel not found")
 	ErrQuestionNotFound       = fmt.Errorf("question not found")
 	ErrProgressNotFound       = fmt.Errorf("progress not found")
 )
@@ -100,7 +101,7 @@ func ErrorToStatusCode(err error) int {
 	}
 
 	switch err {
-	case ErrUserNotFound, ErrBadgeNotFound, ErrDictionaryNotFound:
+	case ErrUserNotFound, ErrBadgeNotFound, ErrDictionaryNotFound, ErrLevelNotFound, ErrSubLevelNotFound, ErrQuestionNotFound, ErrProgressNotFound:
 		return 404
 	case ErrInvalidRequest, ErrInvalidEmail, ErrInvalidResetToken, ErrInvalidRegistrationOTP, ErrPasswordTooShort:
 		return 400

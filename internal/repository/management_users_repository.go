@@ -33,7 +33,7 @@ func (r *managementUsersRepository) List(ctx context.Context, filter admin.Manag
 	query := fmt.Sprintf(`SELECT id::text, username, email, COALESCE(nama, '') AS name, COALESCE(telpon, '') AS phone,
 		role::text, COALESCE(avatar, '') AS avatar, COALESCE(avatar_url, '') AS avatar_url, is_active, is_verified, total_badges, total_xp, total_quizzes_completed, total_points,
 		created_at, updated_at, last_login, deleted_at
-		FROM users %s ORDER BY %s %s LIMIT $%d OFFSET $%d`, where, orderBy, sortOrder, len(args)+1, len(args)+2)
+		FROM users %s ORDER BY %s %s, username %s LIMIT $%d OFFSET $%d`, where, orderBy, sortOrder, sortOrder, len(args)+1, len(args)+2)
 	args = append(args, filter.Limit, filter.Offset)
 
 	users := []admin.ManagementUserResponse{}
@@ -235,6 +235,8 @@ func managementUsersSortColumn(sortBy string) string {
 		return "username"
 	case "email":
 		return "email"
+	case "name":
+		return "COALESCE(nama, '')"
 	case "role":
 		return "role"
 	case "last_login":
@@ -243,6 +245,10 @@ func managementUsersSortColumn(sortBy string) string {
 		return "total_xp"
 	case "total_points":
 		return "total_points"
+	case "updated_at":
+		return "updated_at"
+	case "created_at":
+		return "created_at"
 	default:
 		return "created_at"
 	}
